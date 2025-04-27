@@ -1,0 +1,727 @@
+/* home.css - Styling for ShaSha CJRS Homepage */
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    color: #333;
+    background-color: #f8f9fa;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+a {
+    text-decoration: none;
+    color: #0056b3;
+}
+
+h1, h2, h3, h4 {
+    color: #1a1a1a;
+}
+
+/* Header styles */
+.site-header {
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.site-header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo a {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0056b3;
+    display: flex;
+    align-items: center;
+}
+
+.logo .icon {
+    margin-right: 8px;
+}
+
+.main-nav ul {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+.main-nav a {
+    color: #333;
+    font-weight: 500;
+    padding: 8px 0;
+    position: relative;
+}
+
+.main-nav a.active {
+    color: #0056b3;
+}
+
+.main-nav a.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #0056b3;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: inline-block;
+}
+
+.btn-login {
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    color: #333;
+}
+
+.btn-login:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-register {
+    background-color: #0056b3;
+    color: white;
+}
+
+.btn-register:hover {
+    background-color: #004494;
+}
+
+/* Hero section */
+.hero {
+    background-color: #f0f5ff;
+    padding: 70px 0;
+}
+
+.hero .container {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+}
+
+.hero-content {
+    flex: 1;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.hero p {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    color: #555;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-primary {
+    background-color: #0056b3;
+    color: white;
+    padding: 12px 24px;
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background-color: #004494;
+}
+
+.btn-secondary {
+    background-color: white;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 12px 24px;
+    font-size: 1rem;
+}
+
+.btn-secondary:hover {
+    background-color: #f8f9fa;
+}
+
+.hero-image {
+    flex: 1;
+    text-align: center;
+    background-color: #e6eeff;
+    border-radius: 8px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Job search section */
+.job-search {
+    margin-top: -30px;
+    padding: 0 0 50px;
+}
+
+.search-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+.search-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.search-fields {
+    display: flex;
+    gap: 15px;
+}
+
+.field {
+    flex: 1;
+}
+
+.field input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.btn-search {
+    background-color: #0056b3;
+    color: white;
+    padding: 12px 25px;
+}
+
+.btn-search:hover {
+    background-color: #004494;
+}
+
+/* Categories section */
+.job-categories {
+    padding: 70px 0;
+}
+
+.job-categories h2, 
+.featured-jobs h2 {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.section-subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 40px;
+}
+
+.category-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.category-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 25px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.category-icon {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    background-color: #f0f5ff;
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-card h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.category-card p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.browse-link {
+    display: inline-block;
+    font-weight: 500;
+    color: #0056b3;
+}
+
+.arrow {
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.browse-link:hover .arrow {
+    transform: translateX(5px);
+}
+
+/* Featured jobs section */
+.featured-jobs {
+    padding: 70px 0;
+    background-color: white;
+}
+
+.job-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.job-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 25px;
+    background-color: white;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.job-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.job-header {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.job-icon {
+    font-size: 1.5rem;
+    margin-right: 15px;
+    color: #0056b3;
+}
+
+.job-title-company {
+    flex: 1;
+}
+
+.job-title-company h3 {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.company {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.job-type {
+    background-color: #e6f0ff;
+    color: #0056b3;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.job-details {
+    margin-bottom: 20px;
+}
+
+.job-location {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.job-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.tag {
+    background-color: #f0f5ff;
+    color: #0056b3;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.btn-view {
+    width: 100%;
+    text-align: center;
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    color: #0056b3;
+    padding: 10px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-view:hover {
+    background-color: #f0f5ff;
+}
+
+.view-all-container {
+    text-align: center;
+}
+
+.btn-view-all {
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    color: #0056b3;
+    padding: 10px 20px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.btn-view-all:hover {
+    background-color: #f0f5ff;
+}
+
+.btn-view-all .arrow {
+    margin-left: 5px;
+}
+
+.btn-view-all:hover .arrow {
+    transform: translateX(5px);
+}
+
+/* Footer styles */
+.site-footer {
+    background-color: #f8f9fa;
+    padding: 70px 0 20px;
+    border-top: 1px solid #dee2e6;
+}
+
+.footer-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 50px;
+}
+
+.footer-logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0056b3;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    flex: 1 1 100%;
+    max-width: 300px;
+}
+
+.footer-logo .icon {
+    margin-right: 8px;
+}
+
+.footer-logo p {
+    font-size: 0.9rem;
+    font-weight: normal;
+    color: #666;
+    margin-top: 15px;
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.link-group h3 {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+.link-group ul {
+    list-style: none;
+}
+
+.link-group li {
+    margin-bottom: 10px;
+}
+
+.link-group a {
+    color: #666;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.link-group a:hover {
+    color: #0056b3;
+}
+
+.contact-info li {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Responsive styles */
+@media (max-width: 1024px) {
+    .category-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .job-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .site-header .container {
+        flex-wrap: wrap;
+    }
+    
+    .main-nav {
+        order: 3;
+        width: 100%;
+        margin-top: 15px;
+    }
+    
+    .main-nav ul {
+        justify-content: center;
+    }
+    
+    .hero .container {
+        flex-direction: column;
+    }
+    
+    .search-fields {
+        flex-direction: column;
+    }
+    
+    .job-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .footer-top {
+        flex-direction: column;
+    }
+    
+    .footer-logo {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 576px) {
+    .cta-buttons {
+        flex-direction: column;
+    }
+    
+    .category-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .footer-links {
+        flex-direction: column;
+    }
+}
+
+/* Chatbot Styles */
+.chatbot-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.chatbot-icon {
+    width: 60px;
+    height: 60px;
+    background-color: #0056b3;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.chatbot-icon:hover {
+    background-color: #004494;
+    transform: scale(1.05);
+}
+
+.chatbot-box {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 350px;
+    height: 450px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chatbot-header {
+    padding: 15px;
+    background-color: #0056b3;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chatbot-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: white;
+}
+
+.chatbot-header button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.chatbot-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    margin-bottom: 15px;
+    max-width: 80%;
+    display: flex;
+}
+
+.bot-message {
+    align-self: flex-start;
+}
+
+.user-message {
+    align-self: flex-end;
+}
+
+.message-content {
+    padding: 10px 15px;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.bot-message .message-content {
+    background-color: #f0f5ff;
+    color: #333;
+}
+
+.user-message .message-content {
+    background-color: #0056b3;
+    color: white;
+}
+
+.chatbot-input {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #eee;
+}
+
+.chatbot-input input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 0.95rem;
+}
+
+.chatbot-input input:focus {
+    outline: none;
+    border-color: #0056b3;
+}
+
+.chatbot-input button {
+    background: none;
+    border: none;
+    margin-left: 10px;
+    color: #0056b3;
+    cursor: pointer;
+}
+
+.chatbot-input button:hover {
+    color: #004494;
+}
+
+/* Animation for messages */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message {
+    animation: fadeIn 0.3s ease;
+}
