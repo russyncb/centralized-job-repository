@@ -1,6 +1,6 @@
 <?php
 // Define the base path for the application
-define('BASE_PATH', $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha');
+define('BASE_PATH', __DIR__);
 
 // Include essential files
 require_once BASE_PATH . '/config/config.php';
