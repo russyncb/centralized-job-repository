@@ -14,6 +14,156 @@ $page_title = 'Welcome to ShaSha';
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/home.css">
+    <style>
+        /* Additional styling for a more professional look */
+        .hero {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ec 100%);
+            padding: 70px 0;
+        }
+        
+        .hero-content h1 {
+            font-size: 2.5rem;
+            color: #1a3b5d;
+            margin-bottom: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .hero-content p {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 14px 24px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: #1a73e8;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1557b0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+        }
+        
+        .btn-secondary {
+            background-color: #fff;
+            color: #1a73e8;
+            border: 2px solid #1a73e8;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #f8faff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.1);
+        }
+        
+        /* Enhanced search section */
+        .job-search {
+            background-color: #fff;
+            margin-top: -30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .search-fields {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .field {
+            flex: 1;
+        }
+        
+        .field input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #d9e1ec;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .field input:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+            outline: none;
+        }
+        
+        .btn-search {
+            padding: 14px 28px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-search:hover {
+            background-color: #1557b0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+        }
+        
+        /* Professional footer */
+        .site-footer {
+            background-color: #1a3b5d;
+            color: #e4e7ec;
+            padding: 60px 0 30px;
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links h3 {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links ul li {
+            margin-bottom: 12px;
+        }
+        
+        .footer-links ul li a {
+            color: #d9e1ec;
+            transition: color 0.3s;
+        }
+        
+        .footer-links ul li a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        .chatbot-container {
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
     <header class="site-header">
@@ -29,6 +179,7 @@ $page_title = 'Welcome to ShaSha';
                     <li><a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="auth-required">Jobs</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="auth-required">Companies</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/about.php">About</a></li>
+                    <li><a href="<?php echo SITE_URL; ?>/views/common/contact.php">Contact</a></li>
                 </ul>
             </nav>
             <div class="auth-buttons">
@@ -47,9 +198,6 @@ $page_title = 'Welcome to ShaSha';
                     <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-primary"><span class="icon">🔍</span> I'm Looking for a Job</a>
                     <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-secondary"><span class="icon">🏢</span> I'm Hiring</a>
                 </div>
-            </div>
-            <div class="hero-image">
-                <!-- Placeholder for hero image -->
             </div>
         </div>
     </section>
@@ -362,7 +510,7 @@ $page_title = 'Welcome to ShaSha';
                 return "Employers can register and post job opportunities after verification. We verify all employers to ensure job postings are legitimate.";
             }
             else if (message.includes('contact') || message.includes('support')) {
-                return "You can contact our support team at info@shasha.co.zw or call +263 242 123 456.";
+                return "You can contact our support team at info@shasha.co.zw or call +263 242 123 456. You can also visit our Contact page for more options.";
             }
             else if (message.includes('thank')) {
                 return "You're welcome! Is there anything else I can help you with?";
@@ -373,6 +521,5 @@ $page_title = 'Welcome to ShaSha';
         }
     });
 </script>
-
 </body>
 </html>
