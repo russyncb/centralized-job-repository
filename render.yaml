@@ -2,16 +2,17 @@ services:
   - type: web
     name: shasha-web
     env: docker
-    repo: https://github.com/russyncb/shasha.git # Your actual repository URL
-    branch: main # Or whichever branch you want to deploy
+    repo: https://github.com/russyncb/shasha.git
+    branch: main
     buildCommand: docker build -t shasha-web .
-    # Remove the startCommand as it's causing an error
     envVars:
       - key: DB_HOST
-        value: dpg-your-database-host.render.com # You'll need to replace this
+        sync: false
+      - key: DB_PORT
+        sync: false
       - key: DB_DATABASE
-        value: shasha_db
+        sync: false
       - key: DB_USERNAME
-        value: shasha_user # You'll need to set this
+        sync: false
       - key: DB_PASSWORD
-        value: your_password # You'll need to set this securely
+        sync: false
