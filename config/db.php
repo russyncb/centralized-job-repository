@@ -2,11 +2,28 @@
 // Database Configuration for ShaSha CJRS
 
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'shasha_db';
-    private $username = 'root';  // Change this for production
-    private $password = '';      // Change this for production
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     private $conn;
+
+    public function __construct() {
+        // Check if we're in a production environment (Render)
+        if (getenv('DB_HOST')) {
+            // Use environment variables in production
+            $this->host = getenv('DB_HOST');
+            $this->db_name = getenv('DB_DATABASE');
+            $this->username = getenv('DB_USERNAME');
+            $this->password = getenv('DB_PASSWORD');
+        } else {
+            // Use local development settings
+            $this->host = 'localhost';
+            $this->db_name = 'shasha_db';
+            $this->username = 'root';
+            $this->password = '';
+        }
+    }
 
     // Get database connection
     public function getConnection() {

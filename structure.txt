@@ -1,0 +1,147 @@
+/**
+ * ShaSha CJRS - Centralized Job Repository System
+ * Project Structure and Authentication Flow
+ * 
+ * This document outlines the folder structure and authentication-related files
+ * for the ShaSha CJRS project, focused on the login and authentication system.
+ */
+
+/**
+ * Project Folder Structure
+ * 
+ * /shasha/
+ * ├── api/                  # API endpoints for AJAX requests
+ * ├── assets/               # CSS, JavaScript, images, and other static files
+ * │   ├── css/              # Stylesheets
+ * │   │   ├── style.css     # Main stylesheet
+ * │   │   ├── auth.css      # Authentication-related styles
+ * │   │   ├── home.css      # Home page specific styles
+ * │   │   └── ...
+ * │   ├── js/               # JavaScript files
+ * │   │   ├── main.js       # Main JavaScript file
+ * │   │   ├── auth.js       # Authentication-related scripts
+ * │   │   └── ...
+ * │   └── images/           # Image files
+ * │       ├── logo.png      # Site logo
+ * │       └── ...
+ * ├── config/               # Configuration files
+ * │   └── config.php        # Main configuration settings
+ * ├── controllers/          # Controller files for handling business logic
+ * │   ├── AuthController.php # Authentication controller
+ * │   ├── JobController.php  # Job-related operations
+ * │   └── ...
+ * ├── database/             # Database-related files
+ * │   └── db.php            # Database connection class
+ * ├── includes/             # Reusable PHP components
+ * │   ├── header.php        # Site header 
+ * │   ├── footer.php        # Site footer
+ * │   └── ...
+ * ├── models/               # Model files for data operations
+ * │   ├── User.php          # User model
+ * │   ├── Job.php           # Job model
+ * │   └── ...
+ * ├── uploads/              # User-uploaded files
+ * │   ├── resumes/          # Resume uploads
+ * │   ├── profile_images/   # Profile image uploads
+ * │   └── ...
+ * ├── utils/                # Utility functions
+ * │   ├── helpers.php       # Helper functions
+ * │   ├── validation.php    # Form validation
+ * │   └── ...
+ * ├── vendor/               # Third-party libraries (via Composer)
+ * └── views/                # View files (UI templates)
+ *     ├── admin/            # Admin panel views
+ *     │   ├── dashboard.php # Admin dashboard
+ *     │   └── ...
+ *     ├── auth/             # Authentication-related views
+ *     │   ├── login.php             # Login page
+ *     │   ├── register.php          # Registration page
+ *     │   ├── forgot-password.php   # Forgot password page
+ *     │   └── ...
+ *     ├── common/           # Shared/public views
+ *     │   ├── home.php      # Homepage
+ *     │   ├── about.php     # About page
+ *     │   ├── contact.php   # Contact page
+ *     │   └── ...
+ *     ├── employer/         # Employer-specific views
+ *     │   ├── dashboard.php # Employer dashboard
+ *     │   ├── post-job.php  # Post job page
+ *     │   └── ...
+ *     └── jobseeker/        # Jobseeker-specific views
+ *         ├── dashboard.php # Jobseeker dashboard
+ *         ├── profile.php   # Profile page
+ *         └── ...
+ * ├── .htaccess             # Apache configuration
+ * ├── bootstrap.php         # Application bootstrap file
+ * ├── index.php             # Entry point
+ * └── favicon.ico           # Favicon
+ */
+
+/**
+ * Authentication Flow and Files
+ * 
+ * 1. Login Process:
+ *    - views/auth/login.php: Login form UI
+ *    - controllers/AuthController.php: Processes login form submission
+ *    - models/User.php: Validates user credentials against database
+ * 
+ * 2. Forgot Password Process:
+ *    - views/auth/forgot-password.php: Forgot password form UI
+ *    - controllers/AuthController.php: Processes password reset requests
+ *    - utils/mail.php: Sends password reset emails
+ * 
+ * 3. Registration Process:
+ *    - views/auth/register.php: Registration form UI
+ *    - controllers/AuthController.php: Processes registration form submission
+ *    - models/User.php: Creates new user records in database
+ * 
+ * 4. Session Management:
+ *    - config/config.php: Session configuration
+ *    - bootstrap.php: Session initialization
+ *    - utils/auth.php: Authentication utility functions
+ */
+
+/**
+ * Authentication Implementation Steps
+ * 
+ * 1. Login Page (views/auth/login.php):
+ *    - HTML form for email and password
+ *    - Form validation using JavaScript
+ *    - "Remember me" functionality
+ *    - Link to forgot password page
+ *    - Server-side form processing
+ * 
+ * 2. Forgot Password Page (views/auth/forgot-password.php):
+ *    - Email/phone input form for account verification
+ *    - Verification code entry form
+ *    - New password creation form
+ *    - Success confirmation
+ * 
+ * 3. Authentication Controller (controllers/AuthController.php):
+ *    - Login form handling
+ *    - Password verification
+ *    - Session creation
+ *    - Password reset token generation
+ *    - Password update
+ * 
+ * 4. User Model (models/User.php):
+ *    - User data retrieval
+ *    - Password hashing and verification
+ *    - User status management
+ */
+
+/**
+ * Next Steps for Implementation
+ * 
+ * Based on the files we've already created:
+ * 
+ * 1. Complete login.php - DONE
+ * 2. Complete forgot-password.php - DONE
+ * 3. Create register.php - TO BE IMPLEMENTED
+ * 4. Create User model - TO BE IMPLEMENTED
+ * 5. Create AuthController - TO BE IMPLEMENTED
+ * 6. Create user dashboards for different user types - TO BE IMPLEMENTED
+ *    - Admin dashboard
+ *    - Employer dashboard
+ *    - Jobseeker dashboard
+ */
