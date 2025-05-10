@@ -2,6 +2,11 @@
 // Include bootstrap
 require_once $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/bootstrap.php';
 
+// Initialize database connection
+require_once $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/config/db.php';
+$database = new Database();
+$db = $database->getConnection();
+
 // Set page title
 $page_title = 'Welcome to ShaSha';
 ?>
@@ -30,7 +35,7 @@ $page_title = 'Welcome to ShaSha';
         
         .hero-content p {
             font-size: 1.2rem;
-            color: #4a5568;
+            color:rgb(52, 68, 97);
             margin-bottom: 2rem;
             line-height: 1.6;
         }
@@ -170,14 +175,13 @@ $page_title = 'Welcome to ShaSha';
         <div class="container">
             <div class="logo">
                 <a href="<?php echo SITE_URL; ?>">
-                    <span class="icon">📊</span> ShaSha CJRS
+                    <span class="icon">💼</span> ShaSha CJRS
                 </a>
             </div>
             <nav class="main-nav">
                 <ul>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/home.php" class="active">Home</a></li>
-                    <li><a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="auth-required">Jobs</a></li>
-                    <li><a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="auth-required">Companies</a></li>
+                    <li><a href="<?php echo SITE_URL; ?>/views/common/jobs.php">Jobs</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/about.php">About</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/contact.php">Contact</a></li>
                 </ul>
@@ -206,7 +210,7 @@ $page_title = 'Welcome to ShaSha';
         <div class="container">
             <div class="search-container">
                 <h2>Search Jobs</h2>
-                <form id="search-form" action="<?php echo SITE_URL; ?>/views/auth/login.php" method="GET">
+                <form id="search-form" action="<?php echo SITE_URL; ?>/views/common/jobs.php" method="GET">
                     <div class="search-fields">
                         <div class="field">
                             <input type="text" name="keyword" placeholder="Job title or keyword">
@@ -227,33 +231,24 @@ $page_title = 'Welcome to ShaSha';
             <p class="section-subtitle">Explore opportunities in these in-demand fields</p>
             
             <div class="category-cards">
-                <div class="category-card">
-                    <div class="category-icon">💻</div>
-                    <h3>Information Technology</h3>
-                    <p>245 open positions</p>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="browse-link">Browse Jobs <span class="arrow">→</span></a>
-                </div>
+                <?php
+                // Get top 4 job categories from database
+                $stmt = $db->query("SELECT * FROM job_categories LIMIT 4");
+                $categories = $stmt->fetchAll();
                 
+                foreach ($categories as $category) {
+                    // Get count of active jobs in this category
+                    $countStmt = $db->prepare("SELECT COUNT(*) as count FROM jobs WHERE category = ? AND status = 'active'");
+                    $countStmt->execute([$category['name']]);
+                    $jobCount = (int)$countStmt->fetch()['count'];
+                ?>
                 <div class="category-card">
-                    <div class="category-icon">💰</div>
-                    <h3>Finance & Banking</h3>
-                    <p>186 open positions</p>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="browse-link">Browse Jobs <span class="arrow">→</span></a>
+                    <div class="category-icon">💼</div>
+                    <h3><?php echo htmlspecialchars($category['name']); ?></h3>
+                    <p><?php echo $jobCount; ?> open positions</p>
+                    <a href="<?php echo SITE_URL; ?>/views/common/jobs.php?category=<?php echo urlencode($category['name']); ?>" class="browse-link">Browse Jobs <span class="arrow">→</span></a>
                 </div>
-                
-                <div class="category-card">
-                    <div class="category-icon">🏥</div>
-                    <h3>Healthcare</h3>
-                    <p>142 open positions</p>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="browse-link">Browse Jobs <span class="arrow">→</span></a>
-                </div>
-                
-                <div class="category-card">
-                    <div class="category-icon">🎓</div>
-                    <h3>Education</h3>
-                    <p>97 open positions</p>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="browse-link">Browse Jobs <span class="arrow">→</span></a>
-                </div>
+                <?php } ?>
             </div>
         </div>
     </section>
@@ -264,69 +259,48 @@ $page_title = 'Welcome to ShaSha';
             <p class="section-subtitle">Handpicked opportunities from top employers</p>
             
             <div class="job-cards">
+                <?php
+                // Get 3 featured jobs from database
+                $jobsStmt = $db->query("
+                    SELECT j.*, e.company_name, e.company_logo 
+                    FROM jobs j 
+                    JOIN employer_profiles e ON j.employer_id = e.employer_id 
+                    WHERE j.status = 'active' 
+                    ORDER BY j.posted_at DESC 
+                    LIMIT 3
+                ");
+                $featuredJobs = $jobsStmt->fetchAll();
+
+                foreach ($featuredJobs as $job) {
+                ?>
                 <div class="job-card">
                     <div class="job-header">
-                        <div class="job-icon">📄</div>
+                        <div class="job-icon">💼</div>
                         <div class="job-title-company">
-                            <h3>Senior Software Engineer</h3>
-                            <p class="company">TechZim Solutions</p>
+                            <h3><?php echo htmlspecialchars($job['title']); ?></h3>
+                            <p class="company"><?php echo htmlspecialchars($job['company_name']); ?></p>
                         </div>
-                        <span class="job-type">Full-time</span>
+                        <span class="job-type"><?php echo ucfirst($job['job_type']); ?></span>
                     </div>
                     <div class="job-details">
-                        <p class="job-location">Harare • $2,500 - $3,500/month</p>
+                        <p class="job-location"><?php echo htmlspecialchars($job['location']); ?> • <?php echo $job['salary_currency'] . ' ' . number_format($job['salary_min']) . ' - ' . number_format($job['salary_max']); ?>/month</p>
                         <div class="job-tags">
-                            <span class="tag">React</span>
-                            <span class="tag">Node.js</span>
-                            <span class="tag">MongoDB</span>
+                            <?php
+                            // Display first 3 requirements as tags
+                            $requirements = explode(',', $job['requirements']);
+                            for ($i = 0; $i < min(3, count($requirements)); $i++) {
+                                echo '<span class="tag">' . htmlspecialchars(trim($requirements[$i])) . '</span>';
+                            }
+                            ?>
                         </div>
                     </div>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-view">View Details</a>
+                    <a href="<?php echo SITE_URL; ?>/views/common/job-view.php?id=<?php echo $job['job_id']; ?>" class="btn btn-view">View Details</a>
                 </div>
-                
-                <div class="job-card">
-                    <div class="job-header">
-                        <div class="job-icon">📄</div>
-                        <div class="job-title-company">
-                            <h3>Financial Analyst</h3>
-                            <p class="company">ZimBank</p>
-                        </div>
-                        <span class="job-type">Full-time</span>
-                    </div>
-                    <div class="job-details">
-                        <p class="job-location">Bulawayo • $2,000 - $2,800/month</p>
-                        <div class="job-tags">
-                            <span class="tag">Financial Modeling</span>
-                            <span class="tag">Excel</span>
-                            <span class="tag">Data Analysis</span>
-                        </div>
-                    </div>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-view">View Details</a>
-                </div>
-                
-                <div class="job-card">
-                    <div class="job-header">
-                        <div class="job-icon">📄</div>
-                        <div class="job-title-company">
-                            <h3>Marketing Manager</h3>
-                            <p class="company">AfriComm</p>
-                        </div>
-                        <span class="job-type">Full-time</span>
-                    </div>
-                    <div class="job-details">
-                        <p class="job-location">Harare • $1,800 - $2,500/month</p>
-                        <div class="job-tags">
-                            <span class="tag">Digital Marketing</span>
-                            <span class="tag">Brand Strategy</span>
-                            <span class="tag">Social Media</span>
-                        </div>
-                    </div>
-                    <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-view">View Details</a>
-                </div>
+                <?php } ?>
             </div>
             
             <div class="view-all-container">
-                <a href="<?php echo SITE_URL; ?>/views/auth/login.php" class="btn btn-view-all">View All Jobs <span class="arrow">→</span></a>
+                <a href="<?php echo SITE_URL; ?>/views/common/jobs.php" class="btn btn-view-all">View All Jobs <span class="arrow">→</span></a>
             </div>
         </div>
     </section>

@@ -226,6 +226,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             
             <div class="form-footer">
                 <p>Don't have an account? <a href="<?php echo SITE_URL; ?>/views/auth/register.php">Register</a></p>
+                <p><a href="<?php echo SITE_URL; ?>/views/auth/forget-password.php">Forgot Password?</a></p>
             </div>
         </form>
         

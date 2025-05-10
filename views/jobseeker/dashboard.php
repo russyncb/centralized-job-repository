@@ -87,6 +87,11 @@ foreach($profile_fields as $field => $label) {
 
 $profile_complete = empty($missing_fields);
 $profile_completion = 100 - (count($missing_fields) * 20);
+
+// Get total active jobs
+$total_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'active'")->fetch(PDO::FETCH_ASSOC)['total'];
+// Get new jobs this week
+$new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'active' AND posted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch(PDO::FETCH_ASSOC)['total'];
 ?>
 
 <!DOCTYPE html>
@@ -97,6 +102,124 @@ $profile_completion = 100 - (count($missing_fields) * 20);
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
     <style>
+        /* Sidebar Modernization */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: #fff;
+            padding: 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .sidebar-header {
+            padding: 32px 20px 24px;
+            border-bottom: 1px solid #2a4365;
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            font-weight: bold;
+        }
+        .sidebar-header h3 {
+            color: #fff;
+            font-size: 1.25rem;
+            margin: 0;
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            color: #e4e7ec;
+            text-decoration: none;
+            font-size: 1.05rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left: 4px solid #ffd600;
+        }
+        .sidebar-menu a i {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+        .sidebar-footer {
+            padding: 18px 20px;
+            border-top: 1px solid #2a4365;
+            font-size: 0.95rem;
+            color: #bfc9d9;
+            background: rgba(255,255,255,0.03);
+        }
+        /* Dashboard Job Opportunities */
+        .dashboard-jobs {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .dashboard-job-card {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            padding: 24px 32px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 180px;
+        }
+        .dashboard-job-card .icon {
+            font-size: 2.1rem;
+            margin-bottom: 10px;
+        }
+        .dashboard-job-card .count {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .dashboard-job-card .label {
+            font-size: 1.05rem;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        .dashboard-job-card .btn {
+            margin-top: auto;
+        }
+        .profile-complete-badge {
+            display: inline-block;
+            background: #e3fcec;
+            color: #1a7f37;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 6px 18px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
         /* Jobseeker Dashboard Styles */
         body {
             background-color: #f8f9fa;
@@ -106,55 +229,6 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         .jobseeker-container {
             display: flex;
             min-height: 100vh;
-        }
-        
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
-        }
-        
-        .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        
-        .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
         }
         
         .main-content {
@@ -496,32 +570,24 @@ $profile_completion = 100 - (count($missing_fields) * 20);
 </head>
 <body>
     <div class="jobseeker-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Jobseeker</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php" class="active"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i> My Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i> Search Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php"><i>📋</i> My Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i> Saved Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
-        
+        <?php include __DIR__ . '/jobseeker-sidebar.php'; ?>
         <div class="main-content">
             <div class="top-bar">
                 <h1>Jobseeker Dashboard</h1>
             </div>
-            
-            <?php if(!$profile_complete): ?>
-                <div class="alert">
-                    <p>Your profile is incomplete. Complete your profile to increase your chances of getting hired!</p>
+            <div class="dashboard-jobs">
+                <div class="dashboard-job-card">
+                    <span class="icon">💼</span>
+                    <span class="count"><?php echo $total_jobs; ?></span>
+                    <span class="label">Active Jobs</span>
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Browse Jobs</a>
                 </div>
-            <?php endif; ?>
-            
+                <div class="dashboard-job-card">
+                    <span class="icon">🆕</span>
+                    <span class="count"><?php echo $new_jobs; ?></span>
+                    <span class="label">New This Week</span>
+                </div>
+            </div>
             <div class="grid-container">
                 <div class="main-column">
                     <div class="profile-card">
@@ -538,7 +604,9 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                                 <?php endif; ?>
                             </div>
                         </div>
-                        
+                        <?php if($profile_complete): ?>
+                            <div class="profile-complete-badge">Profile Complete ✔</div>
+                        <?php else: ?>
                         <div class="profile-completion">
                             <div class="progress-bar">
                                 <div class="progress" style="width: <?php echo $profile_completion; ?>%;"></div>
@@ -547,16 +615,13 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                                 <span>Profile Completion</span>
                                 <span><?php echo $profile_completion; ?>%</span>
                             </div>
-                            
-                            <?php if(!$profile_complete): ?>
-                                <div>
-                                    Missing: <?php echo implode(', ', $missing_fields); ?>
-                                </div>
-                            <?php endif; ?>
+                            <div>
+                                Missing: <?php echo implode(', ', $missing_fields); ?>
+                            </div>
                         </div>
-                        
+                        <?php endif; ?>
                         <div class="profile-actions">
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-primary">Update Profile</a>
+                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-outline">Update Profile</a>
                         </div>
                     </div>
                     
@@ -668,5 +733,99 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             </div>
         </div>
     </div>
+    <!-- Chatbot Container -->
+    <div class="chatbot-container">
+        <div class="chatbot-icon" id="chatbot-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div class="chatbot-box" id="chatbot-box">
+            <div class="chatbot-header">
+                <h3>ShaSha Assistant</h3>
+                <button id="close-chat">×</button>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        Hi there! I'm ShaSha's assistant. How can I help you today?
+                    </div>
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="user-input" placeholder="Type your message here...">
+                <button id="send-message">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Chatbot logic (same as home page)
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatbotIcon = document.getElementById('chatbot-icon');
+            const chatbotBox = document.getElementById('chatbot-box');
+            const closeChat = document.getElementById('close-chat');
+            const userInput = document.getElementById('user-input');
+            const sendMessage = document.getElementById('send-message');
+            const chatMessages = document.getElementById('chatbot-messages');
+            chatbotIcon.addEventListener('click', function() {
+                chatbotBox.style.display = 'flex';
+                userInput.focus();
+            });
+            closeChat.addEventListener('click', function() {
+                chatbotBox.style.display = 'none';
+            });
+            function sendUserMessage() {
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, 'user');
+                    userInput.value = '';
+                    setTimeout(() => {
+                        const response = getBotResponse(message);
+                        addMessage(response, 'bot');
+                    }, 600);
+                }
+            }
+            sendMessage.addEventListener('click', sendUserMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendUserMessage();
+                }
+            });
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(sender + '-message');
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.textContent = text;
+                messageDiv.appendChild(contentDiv);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            function getBotResponse(message) {
+                message = message.toLowerCase();
+                if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+                    return "Hello! How can I help you with ShaSha today?";
+                } else if (message.includes('profile') || message.includes('update')) {
+                    return "To update your profile, click 'My Profile' in the sidebar.";
+                } else if (message.includes('job') && (message.includes('find') || message.includes('search') || message.includes('look'))) {
+                    return "To search for jobs, click 'Search Jobs' in the sidebar. You can filter by category, location, and more.";
+                } else if (message.includes('application') || message.includes('applied')) {
+                    return "To view your job applications, click 'My Applications' in the sidebar.";
+                } else if (message.includes('logout')) {
+                    return "To logout, click the 'Logout' button in the sidebar. You'll be asked to confirm before logging out.";
+                } else if (message.includes('thank')) {
+                    return "You're welcome! Is there anything else I can help you with?";
+                } else {
+                    return "I'm here to help! For specific questions, try using the sidebar or contact support if you need more assistance.";
+                }
+            }
+        });
+    </script>
 </body>
 </html>

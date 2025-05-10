@@ -567,21 +567,7 @@ foreach($status_counts as $count) {
 </head>
 <body>
     <div class="jobseeker-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Jobseeker</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i> My Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i> Search Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="active"><i>📋</i> My Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i> Saved Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
-        
+        <?php include __DIR__ . '/jobseeker-sidebar.php'; ?>
         <div class="main-content">
             <div class="top-bar">
                 <h1>My Applications</h1>
@@ -731,7 +717,36 @@ foreach($status_counts as $count) {
             </div>
         </div>
     </div>
-
+    <!-- Chatbot Container -->
+    <div class="chatbot-container">
+        <div class="chatbot-icon" id="chatbot-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div class="chatbot-box" id="chatbot-box">
+            <div class="chatbot-header">
+                <h3>ShaSha Assistant</h3>
+                <button id="close-chat">×</button>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        Hi there! I'm ShaSha's assistant. How can I help you today?
+                    </div>
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="user-input" placeholder="Type your message here...">
+                <button id="send-message">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
     <script>
         // Add confirmation for application withdrawal
         document.addEventListener('DOMContentLoaded', function() {
@@ -744,6 +759,68 @@ foreach($status_counts as $count) {
                         }
                     });
                 });
+            }
+        });
+        // Chatbot logic (same as home page)
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatbotIcon = document.getElementById('chatbot-icon');
+            const chatbotBox = document.getElementById('chatbot-box');
+            const closeChat = document.getElementById('close-chat');
+            const userInput = document.getElementById('user-input');
+            const sendMessage = document.getElementById('send-message');
+            const chatMessages = document.getElementById('chatbot-messages');
+            chatbotIcon.addEventListener('click', function() {
+                chatbotBox.style.display = 'flex';
+                userInput.focus();
+            });
+            closeChat.addEventListener('click', function() {
+                chatbotBox.style.display = 'none';
+            });
+            function sendUserMessage() {
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, 'user');
+                    userInput.value = '';
+                    setTimeout(() => {
+                        const response = getBotResponse(message);
+                        addMessage(response, 'bot');
+                    }, 600);
+                }
+            }
+            sendMessage.addEventListener('click', sendUserMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendUserMessage();
+                }
+            });
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(sender + '-message');
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                contentDiv.textContent = text;
+                messageDiv.appendChild(contentDiv);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            function getBotResponse(message) {
+                message = message.toLowerCase();
+                if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+                    return "Hello! How can I help you with ShaSha today?";
+                } else if (message.includes('profile') || message.includes('update')) {
+                    return "To update your profile, click 'My Profile' in the sidebar.";
+                } else if (message.includes('job') && (message.includes('find') || message.includes('search') || message.includes('look'))) {
+                    return "To search for jobs, click 'Search Jobs' in the sidebar. You can filter by category, location, and more.";
+                } else if (message.includes('application') || message.includes('applied')) {
+                    return "To view your job applications, click 'My Applications' in the sidebar.";
+                } else if (message.includes('logout')) {
+                    return "To logout, click the 'Logout' button in the sidebar. You'll be asked to confirm before logging out.";
+                } else if (message.includes('thank')) {
+                    return "You're welcome! Is there anything else I can help you with?";
+                } else {
+                    return "I'm here to help! For specific questions, try using the sidebar or contact support if you need more assistance.";
+                }
             }
         });
     </script>
