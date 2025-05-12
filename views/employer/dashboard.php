@@ -14,10 +14,12 @@ if(!has_role('employer')) {
 $database = new Database();
 $db = $database->getConnection();
 
-// Get employer ID
-$query = "SELECT employer_id, company_name, industry, location, verified 
-          FROM employer_profiles 
-          WHERE user_id = ?";
+// Get employer ID and user info
+$query = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.verified,
+          u.first_name, u.last_name 
+          FROM employer_profiles e
+          JOIN users u ON e.user_id = u.user_id
+          WHERE e.user_id = ?";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
@@ -98,51 +100,109 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .sidebar {
             width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: #fff;
+            padding: 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
         .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
+            padding: 32px 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            font-weight: bold;
         }
         
         .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
+            color: #fff;
+            font-size: 1.25rem;
+            margin: 0;
         }
         
         .sidebar-menu {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
         }
         
         .sidebar-menu li {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            color: #e4e7ec;
             text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
+            font-size: 1.05rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover:before {
+            width: 100%;
         }
         
         .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left: 4px solid #ffd600;
         }
         
         .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
+            font-size: 1.2rem;
+            width: 24px;
             text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-menu a span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-footer {
+            padding: 18px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+            color: #bfc9d9;
+            background: rgba(255,255,255,0.03);
         }
         
         .main-content {
@@ -156,13 +216,33 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
         }
         
         .user-info {
             display: flex;
             align-items: center;
+            gap: 20px;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: #666;
         }
         
         .verification-badge {
@@ -425,16 +505,21 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             <div class="top-bar">
                 <h1>Employer Dashboard</h1>
                 <div class="user-info">
-                    <span><?php echo $employer['company_name']; ?></span>
-                    <?php if($is_verified): ?>
-                        <span class="verification-badge">
-                            <span class="icon">✓</span> Verified
-                        </span>
-                    <?php else: ?>
-                        <span class="verification-badge pending-verification">
-                            <span class="icon">⏱</span> Pending Verification
-                        </span>
-                    <?php endif; ?>
+                    <div class="user-name">
+                        <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
+                    </div>
+                    <div class="company-info">
+                        <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
+                        <?php if($is_verified): ?>
+                            <span class="verification-badge">
+                                <span class="icon">✓</span> Verified
+                            </span>
+                        <?php else: ?>
+                            <span class="verification-badge pending-verification">
+                                <span class="icon">⏱</span> Pending Verification
+                            </span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             

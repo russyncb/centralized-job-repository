@@ -14,8 +14,11 @@ if(!has_role('jobseeker')) {
 $database = new Database();
 $db = $database->getConnection();
 
-// Get jobseeker ID
-$query = "SELECT jobseeker_id FROM jobseeker_profiles WHERE user_id = ?";
+// Get jobseeker profile with user information
+$query = "SELECT jp.*, u.first_name, u.last_name, u.email, u.phone
+          FROM jobseeker_profiles jp
+          JOIN users u ON jp.user_id = u.user_id
+          WHERE jp.user_id = ?";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
@@ -23,6 +26,7 @@ $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(!$jobseeker) {
     redirect(SITE_URL . '/views/auth/logout.php', 'Jobseeker profile not found.', 'error');
+    exit;
 }
 
 $jobseeker_id = $jobseeker['jobseeker_id'];
@@ -61,7 +65,7 @@ $offset = ($current_page - 1) * $jobs_per_page;
 $count_query = "SELECT COUNT(*) as total FROM saved_jobs WHERE jobseeker_id = ?";
 $count_stmt = $db->prepare($count_query);
 $count_stmt->bindParam(1, $jobseeker_id);
-$stmt->execute();
+$count_stmt->execute();
 $total_saved_jobs = $count_stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
 // Calculate total pages
@@ -123,51 +127,109 @@ if(!empty($saved_jobs)) {
         
         .sidebar {
             width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: #fff;
+            padding: 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
         .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
+            padding: 32px 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
         
         .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
+            color: #fff;
+            font-size: 1.25rem;
+            margin: 0;
         }
         
         .sidebar-menu {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
         }
         
         .sidebar-menu li {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            color: #e4e7ec;
             text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
+            font-size: 1.05rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover:before {
+            width: 100%;
         }
         
         .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left: 4px solid #ffd600;
         }
         
         .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
+            font-size: 1.2rem;
+            width: 24px;
             text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-menu a span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-footer {
+            padding: 18px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+            color: #bfc9d9;
+            background: rgba(255,255,255,0.03);
         }
         
         .main-content {
@@ -181,8 +243,33 @@ if(!empty($saved_jobs)) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: #666;
         }
         
         .saved-count {
@@ -286,11 +373,6 @@ if(!empty($saved_jobs)) {
         .status-closed {
             background-color: #f5f5f5;
             color: #757575;
-        }
-        
-        .company-name {
-            color: #666;
-            margin-bottom: 10px;
         }
         
         .job-meta {
@@ -516,16 +598,222 @@ if(!empty($saved_jobs)) {
                 margin-top: 10px;
             }
         }
+        
+        /* Collapsible Sidebar */
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3,
+        .sidebar.collapsed .sidebar-menu a span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a {
+            padding: 14px;
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a i {
+            margin: 0;
+        }
+        
+        /* Sidebar Toggle Button - New Position */
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 260px; /* Position it just outside the expanded sidebar */
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-toggle {
+            left: 80px; /* Adjust position when sidebar is collapsed */
+            transform: rotate(180deg);
+        }
+        
+        /* Floating Chatbot */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        
+        .chatbot-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .chatbot-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        .chatbot-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+        
+        .chatbot-box {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+        }
+        
+        .chatbot-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        #close-chat {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .chatbot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .chatbot-input {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chatbot-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .chatbot-input button {
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .chatbot-input button:hover {
+            opacity: 0.9;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-message {
+            align-items: flex-end;
+        }
+        
+        .bot-message {
+            align-items: flex-start;
+        }
+        
+        .message-content {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+        
+        .user-message .message-content {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .bot-message .message-content {
+            background: #f5f5f5;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="jobseeker-container">
-        <?php include __DIR__ . '/jobseeker-sidebar.php'; ?>
+        <div class="sidebar">
+            <button class="sidebar-toggle">❮</button>
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
+                </div>
+                <h3>ShaSha Jobseeker</h3>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i><span>My Profile</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i><span>Search Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="active"><i>💾</i><span>Saved Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php"><i>📝</i><span>My Applications</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
+            </ul>
+        </div>
         <div class="main-content">
             <div class="top-bar">
                 <h1>Saved Jobs</h1>
-                <div>
-                    <span class="saved-count"><?php echo $total_saved_jobs; ?> Jobs Saved</span>
+                <div class="user-info">
+                    <div class="user-name">
+                        <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?>
+                    </div>
+                    <?php if(!empty($jobseeker['headline'])): ?>
+                        <div class="company-info">
+                            <span class="company-name"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -688,6 +976,31 @@ if(!empty($saved_jobs)) {
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar Toggle
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            
+            // Check localStorage for sidebar state
+            if(localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+
+            // Add confirmation for logout
+            const logoutLink = document.querySelector('a[href*="logout.php"]');
+            if(logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if(!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
             // Add confirmation for remove action
             const removeButtons = document.querySelectorAll('.remove-job');
             if(removeButtons) {
@@ -699,22 +1012,24 @@ if(!empty($saved_jobs)) {
                     });
                 });
             }
-        });
-        // Chatbot logic (same as home page)
-        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Chatbot logic
             const chatbotIcon = document.getElementById('chatbot-icon');
             const chatbotBox = document.getElementById('chatbot-box');
             const closeChat = document.getElementById('close-chat');
             const userInput = document.getElementById('user-input');
             const sendMessage = document.getElementById('send-message');
             const chatMessages = document.getElementById('chatbot-messages');
+            
             chatbotIcon.addEventListener('click', function() {
                 chatbotBox.style.display = 'flex';
                 userInput.focus();
             });
+            
             closeChat.addEventListener('click', function() {
                 chatbotBox.style.display = 'none';
             });
+            
             function sendUserMessage() {
                 const message = userInput.value.trim();
                 if (message) {
@@ -726,23 +1041,29 @@ if(!empty($saved_jobs)) {
                     }, 600);
                 }
             }
+            
             sendMessage.addEventListener('click', sendUserMessage);
+            
             userInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     sendUserMessage();
                 }
             });
+            
             function addMessage(text, sender) {
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
                 messageDiv.classList.add(sender + '-message');
+                
                 const contentDiv = document.createElement('div');
                 contentDiv.classList.add('message-content');
                 contentDiv.textContent = text;
+                
                 messageDiv.appendChild(contentDiv);
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
+            
             function getBotResponse(message) {
                 message = message.toLowerCase();
                 if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {

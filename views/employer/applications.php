@@ -238,51 +238,109 @@ if(!empty($job_id_filter)) {
         
         .sidebar {
             width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: #fff;
+            padding: 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
         .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
+            padding: 32px 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            font-weight: bold;
         }
         
         .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
+            color: #fff;
+            font-size: 1.25rem;
+            margin: 0;
         }
         
         .sidebar-menu {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
         }
         
         .sidebar-menu li {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            color: #e4e7ec;
             text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
+            font-size: 1.05rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-menu a:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover:before {
+            width: 100%;
         }
         
         .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left: 4px solid #ffd600;
         }
         
         .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
+            font-size: 1.2rem;
+            width: 24px;
             text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-menu a span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-footer {
+            padding: 18px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+            color: #bfc9d9;
+            background: rgba(255,255,255,0.03);
         }
         
         .main-content {
@@ -296,8 +354,33 @@ if(!empty($job_id_filter)) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: #666;
         }
         
         .job-filter {
@@ -549,27 +632,31 @@ if(!empty($job_id_filter)) {
     <div class="employer-container">
         <div class="sidebar">
             <div class="sidebar-header">
+                <div class="sidebar-logo">SS</div>
                 <h3>ShaSha Employer</h3>
             </div>
             
             <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i> Company Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php"><i>📝</i> Post a Job</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php"><i>💼</i> Manage Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="active"><i>📋</i> Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i><span>Company Profile</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php"><i>📝</i><span>Post a Job</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php"><i>💼</i><span>Manage Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="active"><i>📋</i><span>Applications</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
             </ul>
         </div>
         
         <div class="main-content">
             <div class="top-bar">
-                <h1>
-                    Applications
-                    <?php if(!empty($current_job_title)): ?>
-                        <span class="job-filter">for "<?php echo htmlspecialchars($current_job_title); ?>"</span>
-                    <?php endif; ?>
-                </h1>
+                <h1>Applications</h1>
+                <div class="user-info">
+                    <div class="user-name">
+                        <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
+                    </div>
+                    <div class="company-info">
+                        <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
+                    </div>
+                </div>
             </div>
             
             <?php if(isset($_SESSION['message'])): ?>

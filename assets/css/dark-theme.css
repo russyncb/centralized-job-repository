@@ -1,0 +1,83 @@
+/* ShaSha CJRS - Dark Theme */
+:root[data-theme='dark'] {
+  --background: #181a1b;
+  --background-alt: #23272a;
+  --card-bg: #23272a;
+  --text: #e4e7ec;
+  --text-muted: #b0b3b8;
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --border: #2c2f33;
+  --sidebar-bg: #202225;
+  --sidebar-active: #1a73e8;
+  --sidebar-hover: #23272a;
+  --input-bg: #23272a;
+  --input-border: #333;
+  --button-bg: #1a73e8;
+  --button-hover: #1557b0;
+  --success: #2ecc71;
+  --error: #e74c3c;
+}
+
+body[data-theme='dark'] {
+  background: var(--background);
+  color: var(--text);
+}
+
+.site-header,
+.sidebar {
+  background: var(--sidebar-bg) !important;
+  color: var(--text);
+}
+
+.main-content, .card, .profile-card, .job-card, .application-item, .profile-summary, .profile-tips, .search-container, .jobseeker-container, .dashboard-job-card, .stat-card, .category-card, .footer-top, .site-footer {
+  background: var(--card-bg) !important;
+  color: var(--text);
+  border-color: var(--border) !important;
+}
+
+a, .main-nav ul li a, .sidebar-menu a {
+  color: var(--text);
+}
+
+a:hover, .main-nav ul li a:hover, .sidebar-menu a:hover {
+  color: var(--primary);
+}
+
+input, select, textarea {
+  background: var(--input-bg) !important;
+  color: var(--text);
+  border: 1px solid var(--input-border) !important;
+}
+
+.btn, .btn-primary, .btn-outline, .btn-login, .btn-register {
+  background: var(--button-bg) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.btn:hover, .btn-primary:hover, .btn-login:hover, .btn-register:hover {
+  background: var(--button-hover) !important;
+}
+
+.site-footer, .footer-bottom {
+  background: var(--sidebar-bg) !important;
+  color: var(--text-muted) !important;
+}
+
+.alert-success, .success {
+  background: rgba(46, 204, 113, 0.15) !important;
+  color: var(--success) !important;
+}
+
+.alert-error, .error {
+  background: rgba(231, 76, 60, 0.15) !important;
+  color: var(--error) !important;
+}
+
+::-webkit-scrollbar {
+  background: var(--background-alt);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+} 

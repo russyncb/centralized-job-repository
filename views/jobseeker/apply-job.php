@@ -149,51 +149,116 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .sidebar {
             width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: #fff;
+            padding: 0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            position: relative;
         }
         
         .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
+            padding: 32px 20px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
         
         .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
+            color: #fff;
+            font-size: 1.25rem;
+            margin: 0;
         }
         
         .sidebar-menu {
             list-style: none;
             padding: 0;
+            margin: 0;
+            flex: 1;
         }
         
         .sidebar-menu li {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .sidebar-menu a {
-            display: block;
+            display: flex;
+            align-items: center;
             padding: 12px 20px;
-            color: #ced4da;
+            color: rgba(255,255,255,0.8);
             text-decoration: none;
             transition: all 0.3s;
             border-left: 3px solid transparent;
+            font-size: 0.95rem;
         }
         
         .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-left-color: #fff;
         }
         
         .sidebar-menu a i {
-            margin-right: 10px;
+            margin-right: 12px;
             width: 20px;
             text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1557b0;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 40px;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-toggle:hover {
+            background: #1a3b5d;
+        }
+        
+        .sidebar.collapsed {
+            margin-left: -250px;
+        }
+        
+        .sidebar.collapsed + .main-content {
+            margin-left: 0;
+        }
+        
+        .sidebar.collapsed ~ .sidebar-toggle {
+            left: 0;
+            transform: translateY(-50%) rotate(180deg);
         }
         
         .main-content {
@@ -397,17 +462,21 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="jobseeker-container">
         <div class="sidebar">
+            <button class="sidebar-toggle">❮</button>
             <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
+                </div>
                 <h3>ShaSha Jobseeker</h3>
             </div>
             
             <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i> My Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="active"><i>🔍</i> Search Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php"><i>📋</i> My Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i> Saved Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i><span>My Profile</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i><span>Search Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i><span>Saved Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="active"><i>📝</i><span>My Applications</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
             </ul>
         </div>
         
@@ -486,5 +555,33 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar Toggle
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            
+            // Check localStorage for sidebar state
+            if(localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+
+            // Add confirmation for logout
+            const logoutLink = document.querySelector('a[href*="logout.php"]');
+            if(logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if(!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

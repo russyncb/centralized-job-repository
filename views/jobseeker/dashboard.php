@@ -112,15 +112,18 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            transition: width 0.3s ease;
         }
+        
         .sidebar-header {
             padding: 32px 20px 24px;
-            border-bottom: 1px solid #2a4365;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             background: rgba(255,255,255,0.03);
             display: flex;
             align-items: center;
             gap: 12px;
         }
+        
         .sidebar-logo {
             background: #fff;
             color: #1a3b5d;
@@ -130,23 +133,27 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.7rem;
-            font-weight: bold;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
+        
         .sidebar-header h3 {
             color: #fff;
             font-size: 1.25rem;
             margin: 0;
         }
+        
         .sidebar-menu {
             list-style: none;
             padding: 0;
             margin: 0;
             flex: 1;
         }
+        
         .sidebar-menu li {
             margin-bottom: 2px;
         }
+        
         .sidebar-menu a {
             display: flex;
             align-items: center;
@@ -157,20 +164,47 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             font-size: 1.05rem;
             border-left: 4px solid transparent;
             transition: background 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .sidebar-menu a:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover:before {
+            width: 100%;
+        }
+        
         .sidebar-menu a:hover, .sidebar-menu a.active {
             background: rgba(255,255,255,0.08);
             color: #fff;
             border-left: 4px solid #ffd600;
         }
+        
         .sidebar-menu a i {
             font-size: 1.2rem;
             width: 24px;
             text-align: center;
+            position: relative;
+            z-index: 1;
         }
+        
+        .sidebar-menu a span {
+            position: relative;
+            z-index: 1;
+        }
+        
         .sidebar-footer {
             padding: 18px 20px;
-            border-top: 1px solid #2a4365;
+            border-top: 1px solid rgba(255,255,255,0.1);
             font-size: 0.95rem;
             color: #bfc9d9;
             background: rgba(255,255,255,0.03);
@@ -242,8 +276,33 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: #666;
         }
         
         .grid-container {
@@ -290,7 +349,7 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         }
         
         .profile-completion {
-            margin-top: 20px;
+            display: none;
         }
         
         .progress-bar {
@@ -566,14 +625,117 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         .alert p {
             margin: 0;
         }
+        
+        /* Collapsible Sidebar */
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3,
+        .sidebar.collapsed .sidebar-menu a span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a {
+            padding: 14px;
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a i {
+            margin: 0;
+        }
+        
+        /* Sidebar Toggle Button - New Position */
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 260px; /* Position it just outside the expanded sidebar */
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-toggle {
+            left: 80px; /* Adjust position when sidebar is collapsed */
+            transform: rotate(180deg);
+        }
+        
+        /* Floating Chatbot */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        
+        .chatbot-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .chatbot-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        .chatbot-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
     </style>
 </head>
 <body>
     <div class="jobseeker-container">
-        <?php include __DIR__ . '/jobseeker-sidebar.php'; ?>
+        <div class="sidebar">
+            <button class="sidebar-toggle">❮</button>
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
+                </div>
+                <h3>ShaSha Jobseeker</h3>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php" class="active"><i>📊</i><span>Dashboard</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php"><i>👤</i><span>My Profile</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i><span>Search Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i><span>Saved Jobs</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php"><i>📝</i><span>My Applications</span></a></li>
+                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
+            </ul>
+        </div>
         <div class="main-content">
             <div class="top-bar">
-                <h1>Jobseeker Dashboard</h1>
+                <div class="welcome-section">
+                    <h1>Jobseeker Dashboard</h1>
+                    <p>Welcome back, <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?></p>
+                    <?php if(!empty($jobseeker['headline'])): ?>
+                        <div class="headline"><?php echo htmlspecialchars($jobseeker['headline']); ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="action-buttons">
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-outline">Update Resume</a>
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Browse Jobs</a>
+                </div>
             </div>
             <div class="dashboard-jobs">
                 <div class="dashboard-job-card">
@@ -740,91 +902,40 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
         </div>
-        <div class="chatbot-box" id="chatbot-box">
-            <div class="chatbot-header">
-                <h3>ShaSha Assistant</h3>
-                <button id="close-chat">×</button>
-            </div>
-            <div class="chatbot-messages" id="chatbot-messages">
-                <div class="message bot-message">
-                    <div class="message-content">
-                        Hi there! I'm ShaSha's assistant. How can I help you today?
-                    </div>
-                </div>
-            </div>
-            <div class="chatbot-input">
-                <input type="text" id="user-input" placeholder="Type your message here...">
-                <button id="send-message">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
-            </div>
-        </div>
     </div>
     <script>
-        // Chatbot logic (same as home page)
         document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar Toggle
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            
+            // Check localStorage for sidebar state
+            if(localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+
+            // Add confirmation for logout
+            const logoutLink = document.querySelector('a[href*="logout.php"]');
+            if(logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if(!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // Chatbot icon click handler
             const chatbotIcon = document.getElementById('chatbot-icon');
-            const chatbotBox = document.getElementById('chatbot-box');
-            const closeChat = document.getElementById('close-chat');
-            const userInput = document.getElementById('user-input');
-            const sendMessage = document.getElementById('send-message');
-            const chatMessages = document.getElementById('chatbot-messages');
             chatbotIcon.addEventListener('click', function() {
-                chatbotBox.style.display = 'flex';
-                userInput.focus();
+                // You can implement your chatbot logic here
+                alert('Chat functionality coming soon!');
             });
-            closeChat.addEventListener('click', function() {
-                chatbotBox.style.display = 'none';
-            });
-            function sendUserMessage() {
-                const message = userInput.value.trim();
-                if (message) {
-                    addMessage(message, 'user');
-                    userInput.value = '';
-                    setTimeout(() => {
-                        const response = getBotResponse(message);
-                        addMessage(response, 'bot');
-                    }, 600);
-                }
-            }
-            sendMessage.addEventListener('click', sendUserMessage);
-            userInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendUserMessage();
-                }
-            });
-            function addMessage(text, sender) {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message');
-                messageDiv.classList.add(sender + '-message');
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('message-content');
-                contentDiv.textContent = text;
-                messageDiv.appendChild(contentDiv);
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-            function getBotResponse(message) {
-                message = message.toLowerCase();
-                if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-                    return "Hello! How can I help you with ShaSha today?";
-                } else if (message.includes('profile') || message.includes('update')) {
-                    return "To update your profile, click 'My Profile' in the sidebar.";
-                } else if (message.includes('job') && (message.includes('find') || message.includes('search') || message.includes('look'))) {
-                    return "To search for jobs, click 'Search Jobs' in the sidebar. You can filter by category, location, and more.";
-                } else if (message.includes('application') || message.includes('applied')) {
-                    return "To view your job applications, click 'My Applications' in the sidebar.";
-                } else if (message.includes('logout')) {
-                    return "To logout, click the 'Logout' button in the sidebar. You'll be asked to confirm before logging out.";
-                } else if (message.includes('thank')) {
-                    return "You're welcome! Is there anything else I can help you with?";
-                } else {
-                    return "I'm here to help! For specific questions, try using the sidebar or contact support if you need more assistance.";
-                }
-            }
         });
     </script>
 </body>

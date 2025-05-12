@@ -522,7 +522,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <ul>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/home.php">Home</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/jobs.php">Jobs</a></li>
-                    <li><a href="<?php echo SITE_URL; ?>/views/common/companies.php">Companies</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/about.php">About</a></li>
                     <li><a href="<?php echo SITE_URL; ?>/views/common/contact.php" class="active">Contact</a></li>
                 </ul>
