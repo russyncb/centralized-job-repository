@@ -127,75 +127,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $notes = isset($_POST['notes']) ? $_POST['notes'] : '';
     
-    switch($action) {
-        case 'shortlist':
-            $status = 'shortlisted';
-            $message = "Application shortlisted successfully.";
-            break;
-            
-        case 'reject':
-            $status = 'rejected';
-            $message = "Application rejected successfully.";
-            break;
-            
-        case 'hire':
-            $status = 'hired';
-            $message = "Candidate marked as hired successfully.";
-            break;
-            
-        case 'reset':
-            $status = 'pending';
-            $message = "Application reset to pending successfully.";
-            break;
-            
-        default:
-            $status = 'pending';
-            $message = "Application status updated.";
-    }
-    
-    // Start transaction
-    $db->beginTransaction();
-    
-    try {
-        // Update application status
-        $update_query = "UPDATE applications SET status = ?, notes = ? WHERE application_id = ?";
-        $update_stmt = $db->prepare($update_query);
-        $update_stmt->bindParam(1, $status);
-        $update_stmt->bindParam(2, $notes);
-        $update_stmt->bindParam(3, $application_id);
-        $update_stmt->execute();
+    // Handle document download action
+    if ($action === 'download_all') {
+        $zip_filename = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/temp/' . 
+                      sanitize_filename($application['first_name'] . '_' . $application['last_name']) . '_documents.zip';
         
-        // Log status change in application history
-        $history_query = "INSERT INTO application_history 
-                        (application_id, previous_status, new_status, notes, updated_by) 
-                        VALUES (?, ?, ?, ?, ?)";
-        
-        // Try to insert if table exists, don't throw error if it doesn't
-        try {
-            $history_stmt = $db->prepare($history_query);
-            $previous_status = $application['status'];
-            $history_stmt->bindParam(1, $application_id);
-            $history_stmt->bindParam(2, $previous_status);
-            $history_stmt->bindParam(3, $status);
-            $history_stmt->bindParam(4, $notes);
-            $history_stmt->bindParam(5, $_SESSION['user_id']);
-            $history_stmt->execute();
-        } catch(PDOException $e) {
-            // Silently handle if history table doesn't exist
+        // Create directory if it doesn't exist
+        if (!is_dir($_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/temp/')) {
+            mkdir($_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/temp/', 0755, true);
         }
         
-        $db->commit();
-        $_SESSION['message'] = $message;
-        $_SESSION['message_type'] = "success";
+        // Create new zip archive
+        $zip = new ZipArchive();
+        if ($zip->open($zip_filename, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+            $has_files = false;
+            
+            foreach ($documents as $doc) {
+                $file_path = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/' . $doc['file_path'];
+                if (file_exists($file_path)) {
+                    // Add file to zip with categorized folder structure
+                    $folder = ucfirst($doc['document_type']) . 's';
+                    $new_filename = sanitize_filename($doc['document_title'] ?: $doc['original_filename']);
+                    $zip->addFile($file_path, $folder . '/' . $new_filename);
+                    $has_files = true;
+                }
+            }
+            
+            $zip->close();
+            
+            if ($has_files) {
+                // Set headers for download
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="' . basename($zip_filename) . '"');
+                header('Content-Length: ' . filesize($zip_filename));
+                header('Pragma: no-cache');
+                
+                // Output the file
+                readfile($zip_filename);
+                
+                // Delete temporary file
+                unlink($zip_filename);
+                exit;
+            } else {
+                $_SESSION['message'] = "No documents available to download.";
+                $_SESSION['message_type'] = "error";
+            }
+        } else {
+            $_SESSION['message'] = "Failed to create zip archive.";
+            $_SESSION['message_type'] = "error";
+        }
+    } else {
+        switch($action) {
+            case 'shortlist':
+                $status = 'shortlisted';
+                $message = "Application shortlisted successfully.";
+                break;
+            
+            case 'reject':
+                $status = 'rejected';
+                $message = "Application rejected successfully.";
+                break;
+            
+            case 'hire':
+                $status = 'hired';
+                $message = "Candidate marked as hired successfully.";
+                break;
+            
+            case 'reset':
+                $status = 'pending';
+                $message = "Application reset to pending successfully.";
+                break;
+            
+            default:
+                $status = 'pending';
+                $message = "Application status updated.";
+        }
         
-        // Refresh application data
-        $stmt->execute();
-        $application = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch(Exception $e) {
-        $db->rollBack();
-        $_SESSION['message'] = "Error: " . $e->getMessage();
-        $_SESSION['message_type'] = "error";
+        // Start transaction
+        $db->beginTransaction();
+        
+        try {
+            // Update application status
+            $update_query = "UPDATE applications SET status = ?, notes = ? WHERE application_id = ?";
+            $update_stmt = $db->prepare($update_query);
+            $update_stmt->bindParam(1, $status);
+            $update_stmt->bindParam(2, $notes);
+            $update_stmt->bindParam(3, $application_id);
+            $update_stmt->execute();
+            
+            // Log status change in application history
+            $history_query = "INSERT INTO application_history 
+                            (application_id, previous_status, new_status, notes, updated_by) 
+                            VALUES (?, ?, ?, ?, ?)";
+            
+            // Try to insert if table exists, don't throw error if it doesn't
+            try {
+                $history_stmt = $db->prepare($history_query);
+                $previous_status = $application['status'];
+                $history_stmt->bindParam(1, $application_id);
+                $history_stmt->bindParam(2, $previous_status);
+                $history_stmt->bindParam(3, $status);
+                $history_stmt->bindParam(4, $notes);
+                $history_stmt->bindParam(5, $_SESSION['user_id']);
+                $history_stmt->execute();
+            } catch(PDOException $e) {
+                // Silently handle if history table doesn't exist
+            }
+            
+            $db->commit();
+            $_SESSION['message'] = $message;
+            $_SESSION['message_type'] = "success";
+            
+            // Refresh application data
+            $stmt->execute();
+            $application = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch(Exception $e) {
+            $db->rollBack();
+            $_SESSION['message'] = "Error: " . $e->getMessage();
+            $_SESSION['message_type'] = "error";
+        }
     }
+}
+
+// Add sanitize_filename helper function before the HTML
+function sanitize_filename($name) {
+    // Replace spaces with underscores
+    $filename = str_replace(' ', '_', $name);
+    // Remove any non-alphanumeric characters except underscores and dots
+    $filename = preg_replace('/[^A-Za-z0-9_\-\.]/', '', $filename);
+    // Ensure filename isn't too long
+    return substr($filename, 0, 100);
 }
 ?>
 
@@ -764,6 +825,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             font-weight: 500;
         }
         
+        .btn-download {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(29, 78, 216, 0.25);
+        }
+        
         @media (max-width: 768px) {
             .navigation-bar {
                 flex-direction: column;
@@ -1017,6 +1089,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <div class="side-panel">
                     <div class="actions-panel">
                         <h3 class="section-title">Actions</h3>
+                        
+                        <?php if (!empty($documents)): ?>
+                        <form method="post" style="margin-bottom: 20px;">
+                            <input type="hidden" name="action" value="download_all">
+                            <button type="submit" class="btn-action btn-download">
+                                <span class="icon">📦</span> Download All Documents
+                            </button>
+                        </form>
+                        <?php endif; ?>
+                        
                         <div class="action-form">
                             <div class="form-group">
                                 <label for="action-notes">Decision Notes</label>
@@ -1133,16 +1215,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } 
             // Download all documents with 'D' key
             else if (e.key === 'd' || e.key === 'D') {
-                const docLinks = document.querySelectorAll('.document-link');
-                if (docLinks.length > 0) {
-                    docLinks.forEach(link => {
-                        // Create a temporary anchor to trigger download
-                        const tempLink = document.createElement('a');
-                        tempLink.href = link.href;
-                        tempLink.setAttribute('download', '');
-                        tempLink.setAttribute('target', '_blank');
-                        tempLink.click();
-                    });
+                const downloadBtn = document.querySelector('.btn-download');
+                if (downloadBtn) {
+                    downloadBtn.click();
                 }
             }
         });

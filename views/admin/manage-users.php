@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 header("Location: " . SITE_URL . "/views/admin/manage-users.php");
                 exit;
-                break;
+                
             default:
                 $status = 'active';
                 $message = "User status updated.";
