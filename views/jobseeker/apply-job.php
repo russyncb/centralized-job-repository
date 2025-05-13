@@ -7,7 +7,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/bootstrap.php';
 
 // Check if user has jobseeker role
 if(!has_role('jobseeker')) {
-    redirect(SITE_URL . '/views/auth/login.php', 'You do not have permission to access this page.', 'error');
+    redirect(SITE_URL . '/views/auth/login.php', 'You must be logged in as a job seeker to apply for jobs.', 'error');
 }
 
 // Get database connection
@@ -15,24 +15,24 @@ $database = new Database();
 $db = $database->getConnection();
 
 // Get job ID from URL
-$job_id = isset($_GET['id']) ? $_GET['id'] : null;
+$job_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if(!$job_id) {
     redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Invalid job ID.', 'error');
 }
 
 // Get job details
-$query = "SELECT j.*, e.company_name, e.company_logo 
+$query = "SELECT j.*, e.company_name, e.company_logo, e.employer_id 
           FROM jobs j
           JOIN employer_profiles e ON j.employer_id = e.employer_id
-          WHERE j.job_id = ?";
+          WHERE j.job_id = ? AND j.status = 'active'";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $job_id);
 $stmt->execute();
 $job = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(!$job) {
-    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job not found.', 'error');
+    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job not found or no longer active.', 'error');
 }
 
 // Get jobseeker profile
@@ -44,6 +44,10 @@ $stmt = $db->prepare($query);
 $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
 $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if(!$jobseeker) {
+    redirect(SITE_URL . '/views/jobseeker/profile.php', 'Please complete your profile before applying for jobs.', 'error');
+}
 
 // Check if already applied
 $query = "SELECT * FROM applications WHERE job_id = ? AND jobseeker_id = ?";
@@ -57,7 +61,7 @@ if($stmt->fetch()) {
 
 // Get existing documents
 $docs_query = "SELECT * FROM applicant_documents 
-               WHERE jobseeker_id = ? 
+               WHERE jobseeker_id = ? AND application_id IS NULL
                ORDER BY document_type, upload_date DESC";
 $docs_stmt = $db->prepare($docs_query);
 $docs_stmt->bindParam(1, $jobseeker['jobseeker_id']);
@@ -65,80 +69,134 @@ $docs_stmt->execute();
 $documents = $docs_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Group documents by type
-$grouped_documents = [];
+$grouped_documents = [
+    'cv' => [],
+    'cover_letter' => [],
+    'certificate' => [],
+    'other' => []
+];
+
 foreach($documents as $doc) {
     $grouped_documents[$doc['document_type']][] = $doc;
 }
 
+// Define acceptable document types and size limits
+$allowed_mime_types = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+];
+$max_file_size = 5 * 1024 * 1024; // 5MB
+
 // Process application submission
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $selected_cv = $_POST['cv_document'] ?? null;
-    $selected_cover_letter = $_POST['cover_letter_document'] ?? null;
-    $selected_certificates = $_POST['certificate_documents'] ?? [];
-    $selected_others = $_POST['other_documents'] ?? [];
-    
+    // Initialize error array
     $errors = [];
     
-    // Validate required documents
-    if(!$selected_cv) {
-        $errors[] = "Please select or upload a CV.";
+    // Check CV selection or upload
+    $selected_cv = isset($_POST['cv_document']) ? $_POST['cv_document'] : null;
+    $has_new_cv_upload = isset($_FILES['new_cv']) && $_FILES['new_cv']['error'] === 0;
+    $has_new_cv_title = !empty($_POST['new_cv_title']);
+    
+    if(!$selected_cv && !$has_new_cv_upload) {
+        $errors[] = "Please select an existing CV or upload a new one.";
     }
     
-    if(empty($errors)) {
-        // Start transaction
-        $db->beginTransaction();
+    if($has_new_cv_upload) {
+        if(!$has_new_cv_title) {
+            $errors[] = "Please provide a title for your uploaded CV.";
+        }
         
+        // Validate CV file
+        $cv_file = $_FILES['new_cv'];
+        if(!in_array($cv_file['type'], $allowed_mime_types)) {
+            $errors[] = "CV must be in PDF or Word format.";
+        }
+        if($cv_file['size'] > $max_file_size) {
+            $errors[] = "CV size must be less than 5MB.";
+        }
+    }
+    
+    // Process other document uploads
+    $doc_types = ['cover_letter', 'certificate', 'other'];
+    foreach($doc_types as $type) {
+        if(isset($_FILES["new_{$type}"]) && $_FILES["new_{$type}"]['error'] === 0) {
+            $file = $_FILES["new_{$type}"];
+            
+            // Validate file
+            if(!in_array($file['type'], $allowed_mime_types)) {
+                $errors[] = ucfirst($type) . " must be in PDF or Word format.";
+            }
+            if($file['size'] > $max_file_size) {
+                $errors[] = ucfirst($type) . " size must be less than 5MB.";
+            }
+            if(empty($_POST["new_{$type}_title"])) {
+                $errors[] = "Please provide a title for your uploaded " . ucfirst($type) . ".";
+            }
+        }
+    }
+    
+    // If no errors, proceed with application
+    if(empty($errors)) {
         try {
-            // Create application
-            $query = "INSERT INTO applications (job_id, jobseeker_id) VALUES (?, ?)";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(1, $job_id);
-            $stmt->bindParam(2, $jobseeker['jobseeker_id']);
-            $stmt->execute();
+            // Start transaction
+            $db->beginTransaction();
+            
+            // Create application record
+            $app_query = "INSERT INTO applications (job_id, jobseeker_id, status, applied_at) 
+                          VALUES (?, ?, 'pending', NOW())";
+            $app_stmt = $db->prepare($app_query);
+            $app_stmt->bindParam(1, $job_id);
+            $app_stmt->bindParam(2, $jobseeker['jobseeker_id']);
+            $app_stmt->execute();
             
             $application_id = $db->lastInsertId();
             
-            // Link selected documents to application
-            $selected_docs = array_merge(
-                [$selected_cv],
-                $selected_cover_letter ? [$selected_cover_letter] : [],
-                $selected_certificates,
-                $selected_others
-            );
+            // Process selected existing documents
+            $document_types = ['cv', 'cover_letter', 'certificate', 'other'];
+            $selected_docs = [];
             
+            // Add selected CV
+            if($selected_cv) {
+                $selected_docs[] = $selected_cv;
+            }
+            
+            // Add selected cover letter if any
+            if(isset($_POST['cover_letter_document'])) {
+                $selected_docs[] = $_POST['cover_letter_document'];
+            }
+            
+            // Add selected certificates if any
+            if(isset($_POST['certificate_documents']) && is_array($_POST['certificate_documents'])) {
+                $selected_docs = array_merge($selected_docs, $_POST['certificate_documents']);
+            }
+            
+            // Add selected other documents if any
+            if(isset($_POST['other_documents']) && is_array($_POST['other_documents'])) {
+                $selected_docs = array_merge($selected_docs, $_POST['other_documents']);
+            }
+            
+            // Update selected documents with the application ID
             if(!empty($selected_docs)) {
-                $update_query = "UPDATE applicant_documents 
-                               SET application_id = ? 
-                               WHERE document_id IN (" . implode(',', array_fill(0, count($selected_docs), '?')) . ")";
-                $update_stmt = $db->prepare($update_query);
-                $update_stmt->bindValue(1, $application_id);
-                foreach($selected_docs as $i => $doc_id) {
-                    $update_stmt->bindValue($i + 2, $doc_id);
+                $placeholders = implode(',', array_fill(0, count($selected_docs), '?'));
+                $update_docs_query = "UPDATE applicant_documents 
+                                     SET application_id = ? 
+                                     WHERE document_id IN ($placeholders)";
+                $update_docs_stmt = $db->prepare($update_docs_query);
+                $update_docs_stmt->bindParam(1, $application_id);
+                
+                foreach($selected_docs as $key => $doc_id) {
+                    $update_docs_stmt->bindValue($key + 2, $doc_id);
                 }
-                $update_stmt->execute();
+                
+                $update_docs_stmt->execute();
             }
             
             // Process new document uploads
-            $document_types = ['cv', 'cover_letter', 'certificate', 'other'];
             foreach($document_types as $type) {
                 if(isset($_FILES["new_{$type}"]) && $_FILES["new_{$type}"]['error'] === 0) {
                     $file = $_FILES["new_{$type}"];
                     $title = $_POST["new_{$type}_title"];
-                    
-                    // Upload validation and processing (similar to profile.php)
-                    $allowed_types = [
-                        'application/pdf',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                    ];
-                    $max_size = 5 * 1024 * 1024; // 5MB
-                    
-                    if(!in_array($file['type'], $allowed_types)) {
-                        throw new Exception("Only PDF and Word documents are allowed.");
-                    }
-                    if($file['size'] > $max_size) {
-                        throw new Exception("File size must be less than 5MB.");
-                    }
                     
                     // Create upload directory
                     $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/documents/' . $jobseeker['jobseeker_id'] . '/';
@@ -146,41 +204,65 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                         mkdir($upload_dir, 0755, true);
                     }
                     
-                    // Generate filename and move file
-                    $filename = $type . '_' . time() . '_' . $file['name'];
-                    $target_file = $upload_dir . $filename;
+                    // Generate unique filename
+                    $filename = $type . '_' . time() . '_' . preg_replace('/[^A-Za-z0-9\.\-]/', '_', $file['name']);
+                    $destination = $upload_dir . $filename;
                     
-                    if(move_uploaded_file($file['tmp_name'], $target_file)) {
-                        // Add to database
-                        $doc_query = "INSERT INTO applicant_documents 
-                                    (jobseeker_id, application_id, document_type, file_path, 
-                                     original_filename, file_size, mime_type, document_title)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                        $doc_stmt = $db->prepare($doc_query);
-                        $doc_stmt->bindParam(1, $jobseeker['jobseeker_id']);
-                        $doc_stmt->bindParam(2, $application_id);
-                        $doc_stmt->bindParam(3, $type);
-                        $doc_stmt->bindParam(4, 'uploads/documents/' . $jobseeker['jobseeker_id'] . '/' . $filename);
-                        $doc_stmt->bindParam(5, $file['name']);
-                        $doc_stmt->bindParam(6, $file['size']);
-                        $doc_stmt->bindParam(7, $file['type']);
-                        $doc_stmt->bindParam(8, $title);
-                        $doc_stmt->execute();
+                    if(move_uploaded_file($file['tmp_name'], $destination)) {
+                        // Insert document record
+                        $insert_doc_query = "INSERT INTO applicant_documents 
+                                           (jobseeker_id, application_id, document_type, 
+                                            file_path, original_filename, file_size, 
+                                            mime_type, document_title, upload_date) 
+                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                        $insert_doc_stmt = $db->prepare($insert_doc_query);
+                        $insert_doc_stmt->bindParam(1, $jobseeker['jobseeker_id']);
+                        $insert_doc_stmt->bindParam(2, $application_id);
+                        $insert_doc_stmt->bindParam(3, $type);
+                        
+                        $file_path = 'uploads/documents/' . $jobseeker['jobseeker_id'] . '/' . $filename;
+                        $insert_doc_stmt->bindParam(4, $file_path);
+                        $insert_doc_stmt->bindParam(5, $file['name']);
+                        $insert_doc_stmt->bindParam(6, $file['size']);
+                        $insert_doc_stmt->bindParam(7, $file['type']);
+                        $insert_doc_stmt->bindParam(8, $title);
+                        
+                        $insert_doc_stmt->execute();
                     } else {
-                        throw new Exception("Error uploading file.");
+                        throw new Exception("Failed to upload file: " . $file['name']);
                     }
                 }
             }
             
+            // Create notification for the employer
+            $notification_query = "INSERT INTO notifications (user_id, title, message, is_read, created_at) 
+                                  SELECT user_id, 
+                                         'New Job Application', 
+                                         CONCAT('New application for ', ?, ' from ', ?, ' ', ?), 
+                                         0, 
+                                         NOW() 
+                                  FROM employer_profiles 
+                                  WHERE employer_id = ?";
+            $notification_stmt = $db->prepare($notification_query);
+            $notification_stmt->bindParam(1, $job['title']);
+            $notification_stmt->bindParam(2, $jobseeker['first_name']);
+            $notification_stmt->bindParam(3, $jobseeker['last_name']);
+            $notification_stmt->bindParam(4, $job['employer_id']);
+            $notification_stmt->execute();
+            
+            // Commit transaction
             $db->commit();
-            redirect(SITE_URL . '/views/jobseeker/my-applications.php', 'Application submitted successfully.', 'success');
+            
+            // Redirect to success page
+            redirect(SITE_URL . '/views/jobseeker/my-applications.php', 'Your application has been submitted successfully!', 'success');
             
         } catch(Exception $e) {
+            // Roll back transaction on error
             $db->rollBack();
-            $error = $e->getMessage();
+            $error_message = "An error occurred: " . $e->getMessage();
         }
     } else {
-        $error = implode('<br>', $errors);
+        $error_message = implode('<br>', $errors);
     }
 }
 ?>
@@ -707,8 +789,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <?php if(isset($error)): ?>
-                <div class="message error"><?php echo $error; ?></div>
+            <?php if(isset($error_message)): ?>
+                <div class="message error"><?php echo $error_message; ?></div>
             <?php endif; ?>
             
             <div class="application-form">
