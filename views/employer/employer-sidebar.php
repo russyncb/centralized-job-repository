@@ -15,8 +15,9 @@ function is_active($page) {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        transition: all 0.3s ease;
+        transition: width 0.3s ease;
         position: relative;
+        z-index: 100;
     }
     
     .sidebar.collapsed {
@@ -38,19 +39,19 @@ function is_active($page) {
     }
     
     .sidebar-toggle {
-        position: fixed;
+        position: absolute;
         top: 20px;
-        left: 260px;
+        right: -16px;
         width: 32px;
         height: 32px;
-        background: #fff;
+        background: #ffffff;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        z-index: 1000;
+        z-index: 101;
         border: none;
         color: #1a3b5d;
         font-size: 1.2rem;
@@ -58,7 +59,6 @@ function is_active($page) {
     }
     
     .sidebar.collapsed .sidebar-toggle {
-        left: 80px;
         transform: rotate(180deg);
     }
     
@@ -139,7 +139,7 @@ function is_active($page) {
             echo $initials;
             ?>
         </div>
-        <h3>ShaSha Employer</h3>
+        <h3>ShaSha</h3>
     </div>
     
     <ul class="sidebar-menu">
@@ -148,6 +148,7 @@ function is_active($page) {
         <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php" class="<?php echo is_active('post-job.php'); ?>"><i>📝</i><span>Post a Job</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="<?php echo is_active('manage-jobs.php'); ?>"><i>💼</i><span>Manage Jobs</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="<?php echo is_active('applications.php'); ?>"><i>📋</i><span>Applications</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/employer/chat-assistant.php" class="<?php echo is_active('chat-assistant.php'); ?>"><i>💬</i><span>Chat Assistant</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
     </ul>
 </div>

@@ -102,14 +102,51 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 30px;
+            background: #f8fafc;
             overflow-y: auto;
-            transition: margin-left 0.3s ease;
-            margin-left: 0;
+            width: calc(100% - 250px);  /* Account for sidebar width */
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar {
+            position: relative;  /* Added to contain the toggle button */
+            width: 250px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            transition: width 0.3s ease;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -16px;
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 101;
+            border: none;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed {
+            width: 70px;
         }
         
         .sidebar.collapsed + .main-content {
-            margin-left: 70px;
+            width: calc(100% - 70px);
+        }
+        
+        .sidebar.collapsed .sidebar-toggle {
+            transform: rotate(180deg);
         }
         
         .top-bar {

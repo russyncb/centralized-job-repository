@@ -325,10 +325,18 @@ foreach($status_counts as $count) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
         
         .user-info {
@@ -339,7 +347,7 @@ foreach($status_counts as $count) {
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
         }
         
@@ -351,7 +359,28 @@ foreach($status_counts as $count) {
         
         .company-name {
             font-size: 1rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .verification-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(232, 245, 233, 0.9);
+            color: #388e3c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 15px;
+            backdrop-filter: blur(4px);
+        }
+        
+        .verification-badge .icon {
+            margin-right: 5px;
+        }
+        
+        .pending-verification {
+            background-color: rgba(255, 248, 225, 0.9);
+            color: #f57c00;
         }
         
         .action-button {
@@ -685,6 +714,15 @@ foreach($status_counts as $count) {
                     </div>
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
+                        <?php if($is_verified): ?>
+                            <span class="verification-badge">
+                                <span class="icon">✓</span> Verified
+                            </span>
+                        <?php else: ?>
+                            <span class="verification-badge pending-verification">
+                                <span class="icon">⌛</span> Pending Verification
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

@@ -307,14 +307,15 @@ $company_sizes = [
         
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 30px;
+            background: #f8fafc;
             overflow-y: auto;
-            transition: margin-left 0.3s ease;
-            margin-left: 0;
+            width: calc(100% - 250px);
+            transition: all 0.3s ease;
         }
         
         .sidebar.collapsed + .main-content {
-            margin-left: 70px;
+            width: calc(100% - 70px);
         }
         
         .top-bar {
@@ -322,10 +323,18 @@ $company_sizes = [
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
         
         .user-info {
@@ -336,7 +345,7 @@ $company_sizes = [
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
         }
         
@@ -348,18 +357,19 @@ $company_sizes = [
         
         .company-name {
             font-size: 1rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.85);
         }
         
         .verification-badge {
             display: inline-flex;
             align-items: center;
-            background-color: #e8f5e9;
+            background-color: rgba(232, 245, 233, 0.9);
             color: #388e3c;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             margin-left: 15px;
+            backdrop-filter: blur(4px);
         }
         
         .verification-badge .icon {
@@ -367,7 +377,7 @@ $company_sizes = [
         }
         
         .pending-verification {
-            background-color: #fff8e1;
+            background-color: rgba(255, 248, 225, 0.9);
             color: #f57c00;
         }
         
