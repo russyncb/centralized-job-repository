@@ -148,13 +148,10 @@ function is_active($page) {
         <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php" class="<?php echo is_active('post-job.php'); ?>"><i>📝</i><span>Post a Job</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="<?php echo is_active('manage-jobs.php'); ?>"><i>💼</i><span>Manage Jobs</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="<?php echo is_active('applications.php'); ?>"><i>📋</i><span>Applications</span></a></li>
-        <li><a href="#" onclick="openChatAssistant(event)" class="<?php echo is_active('chat-assistant.php'); ?>"><i>💬</i><span>Chat Assistant</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/employer/chat-assistant.php" class="<?php echo is_active('chat-assistant.php'); ?>"><i>💬</i><span>Chat Assistant</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
     </ul>
 </div>
-
-<!-- Include the chat assistant modal -->
-<?php include 'chat-assistant-modal.php'; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -181,26 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
             }
         });
-    }
-});
-
-// Chat Assistant Modal Functions
-function openChatAssistant(event) {
-    event.preventDefault();
-    document.getElementById('chatAssistantModal').style.display = 'block';
-    loadChatHistory(); // Load chat history when modal opens
-}
-
-// Close modal when clicking the close button
-document.querySelector('.close-modal').addEventListener('click', function() {
-    document.getElementById('chatAssistantModal').style.display = 'none';
-});
-
-// Close modal when clicking outside
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('chatAssistantModal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
     }
 });
 </script> 
