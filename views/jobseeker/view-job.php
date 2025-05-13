@@ -607,6 +607,7 @@ if(!empty($job['application_deadline'])) {
             transition: color 0.2s ease;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
