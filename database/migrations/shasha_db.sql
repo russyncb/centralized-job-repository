@@ -52,7 +52,6 @@ CREATE TABLE employer_profiles (
 CREATE TABLE jobseeker_profiles (
     jobseeker_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
-    resume VARCHAR(255),
     headline VARCHAR(255),
     education_level VARCHAR(100),
     experience_years INT,
@@ -60,6 +59,35 @@ CREATE TABLE jobseeker_profiles (
     date_of_birth DATE,
     address TEXT,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- Applicant Documents table to store all document types
+CREATE TABLE applicant_documents (
+    document_id INT AUTO_INCREMENT PRIMARY KEY,
+    jobseeker_id INT NOT NULL,
+    application_id INT,
+    document_type ENUM('cv', 'cover_letter', 'certificate', 'other') NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_size INT NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    document_title VARCHAR(255),
+    document_description TEXT,
+    FOREIGN KEY (jobseeker_id) REFERENCES jobseeker_profiles(jobseeker_id) ON DELETE CASCADE,
+    FOREIGN KEY (application_id) REFERENCES applications(application_id) ON DELETE SET NULL
+);
+
+-- Export Logs table to track document exports
+CREATE TABLE export_logs (
+    export_id INT AUTO_INCREMENT PRIMARY KEY,
+    employer_id INT NOT NULL,
+    export_type VARCHAR(50) NOT NULL,
+    export_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    file_path VARCHAR(255) NOT NULL,
+    status ENUM('processing', 'completed', 'failed') NOT NULL DEFAULT 'processing',
+    error_message TEXT,
+    FOREIGN KEY (employer_id) REFERENCES employer_profiles(employer_id) ON DELETE CASCADE
 );
 
 -- Jobs table
@@ -88,11 +116,12 @@ CREATE TABLE applications (
     application_id INT AUTO_INCREMENT PRIMARY KEY,
     job_id INT NOT NULL,
     jobseeker_id INT NOT NULL,
-    cover_letter TEXT,
-    resume VARCHAR(255),
     status ENUM('pending', 'reviewed', 'shortlisted', 'rejected', 'hired') DEFAULT 'pending',
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    notes TEXT,
+    exported BOOLEAN DEFAULT FALSE,
+    export_date TIMESTAMP NULL,
     FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE,
     FOREIGN KEY (jobseeker_id) REFERENCES jobseeker_profiles(jobseeker_id) ON DELETE CASCADE,
     UNIQUE KEY unique_application (job_id, jobseeker_id)

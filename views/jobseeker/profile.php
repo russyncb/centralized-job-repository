@@ -159,6 +159,72 @@ if(isset($_FILES['resume']) && $_FILES['resume']['error'] === 0) {
     }
 }
 
+// Process document upload
+if(isset($_FILES['document']) && $_FILES['document']['error'] === 0) {
+    $document_type = $_POST['document_type'];
+    $document_title = $_POST['document_title'];
+    $document_description = $_POST['document_description'];
+    
+    $allowed_types = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    $max_size = 5 * 1024 * 1024; // 5MB
+    
+    if(!in_array($_FILES['document']['type'], $allowed_types)) {
+        $error = "Only PDF and Word documents are allowed.";
+    } elseif($_FILES['document']['size'] > $max_size) {
+        $error = "File size must be less than 5MB.";
+    } else {
+        // Create uploads directory if it doesn't exist
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/documents/' . $jobseeker['jobseeker_id'] . '/';
+        if(!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        // Generate unique filename
+        $filename = $document_type . '_' . time() . '_' . $_FILES['document']['name'];
+        $target_file = $upload_dir . $filename;
+        
+        if(move_uploaded_file($_FILES['document']['tmp_name'], $target_file)) {
+            // Add to database
+            $query = "INSERT INTO applicant_documents (jobseeker_id, document_type, file_path, original_filename, file_size, mime_type, document_title, document_description)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(1, $jobseeker['jobseeker_id']);
+            $stmt->bindParam(2, $document_type);
+            $stmt->bindParam(3, 'uploads/documents/' . $jobseeker['jobseeker_id'] . '/' . $filename);
+            $stmt->bindParam(4, $_FILES['document']['name']);
+            $stmt->bindParam(5, $_FILES['document']['size']);
+            $stmt->bindParam(6, $_FILES['document']['type']);
+            $stmt->bindParam(7, $document_title);
+            $stmt->bindParam(8, $document_description);
+            
+            if($stmt->execute()) {
+                $success = "Document uploaded successfully.";
+            } else {
+                $error = "Error saving document information.";
+            }
+        } else {
+            $error = "Error uploading file.";
+        }
+    }
+}
+
+// Get user's documents
+$docs_query = "SELECT * FROM applicant_documents WHERE jobseeker_id = ? ORDER BY upload_date DESC";
+$docs_stmt = $db->prepare($docs_query);
+$docs_stmt->bindParam(1, $jobseeker['jobseeker_id']);
+$docs_stmt->execute();
+$documents = $docs_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group documents by type
+$grouped_documents = [];
+foreach($documents as $doc) {
+    $grouped_documents[$doc['document_type']][] = $doc;
+}
+
 // List of education levels
 $education_levels = [
     'High School',
@@ -1000,6 +1066,115 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         .character-counter.at-limit {
             color: #ef4444;
         }
+
+        /* Document Management Styles */
+        .document-form {
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .documents-list {
+            margin-top: 20px;
+        }
+
+        .document-section {
+            margin-bottom: 25px;
+        }
+
+        .document-section h4 {
+            font-size: 1.1rem;
+            color: #1a3b5d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .document-item:hover {
+            border-color: #93c5fd;
+            background: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .document-icon {
+            font-size: 1.8rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-title {
+            font-weight: 600;
+            color: #1a3b5d;
+            margin-bottom: 3px;
+        }
+
+        .document-description {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .document-meta {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .no-documents {
+            text-align: center;
+            padding: 30px;
+            background: #f8fafc;
+            border-radius: 10px;
+            color: #64748b;
+        }
+
+        .no-documents p {
+            margin: 0;
+        }
+
+        /* Form improvements */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%231a3b5d' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 35px !important;
+        }
     </style>
 </head>
 <body>
@@ -1044,41 +1219,101 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                 <div class="profile-main">
                     <div class="profile-card">
                         <div class="profile-header">
-                            <h3>Resume</h3>
+                            <h3>Documents</h3>
                         </div>
                         <div class="profile-content">
-                            <?php if(!empty($jobseeker['resume'])): ?>
-                                <div class="resume-preview">
-                                    <div class="resume-file">
-                                        <div class="resume-icon">📄</div>
-                                        <div class="resume-info">
-                                            <div class="resume-name">
-                                                <?php
-                                                $filename = basename($jobseeker['resume']);
-                                                $parts = explode('_', $filename, 3);
-                                                echo htmlspecialchars($parts[2] ?? $filename);
-                                                ?>
-                                            </div>
-                                            <div class="resume-date">
-                                                Uploaded: <?php echo date('F d, Y', filectime($_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/' . $jobseeker['resume'])); ?>
-                                            </div>
-                                        </div>
-                                        <div class="resume-actions">
-                                            <a href="<?php echo SITE_URL . '/' . $jobseeker['resume']; ?>" class="btn btn-outline btn-sm" target="_blank">View</a>
-                                        </div>
+                            <!-- Document Upload Form -->
+                            <form method="post" action="" enctype="multipart/form-data" class="document-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="document_type" class="required">Document Type</label>
+                                        <select id="document_type" name="document_type" required>
+                                            <option value="cv">CV/Resume</option>
+                                            <option value="cover_letter">Cover Letter</option>
+                                            <option value="certificate">Certificate</option>
+                                            <option value="other">Other Document</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="document_title" class="required">Document Title</label>
+                                        <input type="text" id="document_title" name="document_title" required
+                                               placeholder="e.g. Software Engineer CV, Bachelor's Degree Certificate">
                                     </div>
                                 </div>
-                            <?php endif; ?>
-                            
-                            <form method="post" action="" enctype="multipart/form-data">
+                                
                                 <div class="form-group">
-                                    <label for="resume">Upload Resume</label>
-                                    <input type="file" id="resume" name="resume">
+                                    <label for="document_description">Description</label>
+                                    <textarea id="document_description" name="document_description" 
+                                             placeholder="Brief description of the document"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="document" class="required">Upload Document</label>
+                                    <input type="file" id="document" name="document" required>
                                     <div class="help-text">Accepted formats: PDF, DOC, DOCX. Max file size: 5MB.</div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary">Upload Resume</button>
+                                <button type="submit" class="btn btn-primary">Upload Document</button>
                             </form>
+                            
+                            <!-- Document List -->
+                            <div class="documents-list">
+                                <?php
+                                $document_types = [
+                                    'cv' => ['icon' => '📄', 'title' => 'CV/Resume'],
+                                    'cover_letter' => ['icon' => '✉️', 'title' => 'Cover Letters'],
+                                    'certificate' => ['icon' => '��', 'title' => 'Certificates'],
+                                    'other' => ['icon' => '📎', 'title' => 'Other Documents']
+                                ];
+                                
+                                foreach($document_types as $type => $info):
+                                    if(isset($grouped_documents[$type])):
+                                ?>
+                                    <div class="document-section">
+                                        <h4><?php echo $info['icon'] . ' ' . $info['title']; ?></h4>
+                                        <?php foreach($grouped_documents[$type] as $doc): ?>
+                                            <div class="document-item">
+                                                <div class="document-icon"><?php echo $info['icon']; ?></div>
+                                                <div class="document-info">
+                                                    <div class="document-title">
+                                                        <?php echo htmlspecialchars($doc['document_title']); ?>
+                                                    </div>
+                                                    <?php if($doc['document_description']): ?>
+                                                        <div class="document-description">
+                                                            <?php echo htmlspecialchars($doc['document_description']); ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div class="document-meta">
+                                                        Uploaded: <?php echo date('F d, Y', strtotime($doc['upload_date'])); ?>
+                                                        • Size: <?php echo round($doc['file_size'] / 1024, 1); ?>KB
+                                                    </div>
+                                                </div>
+                                                <div class="document-actions">
+                                                    <a href="<?php echo SITE_URL . '/' . $doc['file_path']; ?>" 
+                                                       class="btn btn-outline btn-sm" target="_blank">View</a>
+                                                    <form method="post" action="" class="d-inline">
+                                                        <input type="hidden" name="delete_document" value="<?php echo $doc['document_id']; ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                                onclick="return confirm('Are you sure you want to delete this document?')">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php 
+                                    endif;
+                                endforeach;
+                                
+                                if(empty($documents)):
+                                ?>
+                                    <div class="no-documents">
+                                        <p>No documents uploaded yet. Start by uploading your CV and other relevant documents.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     

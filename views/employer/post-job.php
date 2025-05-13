@@ -124,122 +124,13 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             min-height: 100vh;
         }
         
-        .sidebar {
-            width: 250px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            color: #fff;
-            padding: 0;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar-header {
-            padding: 32px 20px 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.03);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .sidebar-logo {
-            background: #fff;
-            color: #1a3b5d;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.7rem;
-            font-weight: bold;
-        }
-        
-        .sidebar-header h3 {
-            color: #fff;
-            font-size: 1.25rem;
-            margin: 0;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex: 1;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 2px;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 28px;
-            color: #e4e7ec;
-            text-decoration: none;
-            font-size: 1.05rem;
-            border-left: 4px solid transparent;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 0;
-            height: 100%;
-            background: rgba(255,255,255,0.1);
-            transition: width 0.3s ease;
-        }
-        
-        .sidebar-menu a:hover:before {
-            width: 100%;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            border-left: 4px solid #ffd600;
-        }
-        
-        .sidebar-menu a i {
-            font-size: 1.2rem;
-            width: 24px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-menu a span {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-footer {
-            padding: 18px 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.95rem;
-            color: #bfc9d9;
-            background: rgba(255,255,255,0.03);
-        }
-        
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 30px;
+            background: #f8fafc;
             overflow-y: auto;
-            transition: margin-left 0.3s ease;
-        }
-        
-        .sidebar.collapsed + .main-content {
-            margin-left: -180px;
+            width: calc(100% - 250px);
+            transition: all 0.3s ease;
         }
         
         .top-bar {
@@ -261,70 +152,47 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             font-weight: 600;
         }
         
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
-        .user-name {
-            font-size: 1.1rem;
-            color: #ffffff;
-            font-weight: 500;
+        .success {
+            border-left: 4px solid #22c55e;
+            color: #15803d;
         }
         
-        .company-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .company-name {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        
-        .verification-badge {
-            display: inline-flex;
-            align-items: center;
-            background-color: rgba(232, 245, 233, 0.9);
-            color: #388e3c;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-left: 15px;
-            backdrop-filter: blur(4px);
-        }
-        
-        .verification-badge .icon {
-            margin-right: 5px;
-        }
-        
-        .pending-verification {
-            background-color: rgba(255, 248, 225, 0.9);
-            color: #f57c00;
+        .error {
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
         }
         
         .job-form-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
             margin-bottom: 30px;
         }
         
         .job-form-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
+            padding: 25px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(to right, #f8fafc, #f1f5f9);
         }
         
         .job-form-header h3 {
             margin: 0;
             font-size: 1.2rem;
+            color: #1a3b5d;
+            font-weight: 600;
         }
         
         .job-form-content {
-            padding: 20px;
+            padding: 25px;
         }
         
         .form-group {
@@ -335,97 +203,148 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: #444;
+            color: #1a3b5d;
         }
         
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+            color: #1a3b5d;
+            background: #f8fafc;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+            background: white;
         }
         
         .form-group textarea {
-            height: 120px;
+            height: 150px;
             resize: vertical;
+            line-height: 1.6;
         }
         
         .form-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-        }
-        
-        .form-row .form-group {
-            flex: 1;
+            margin-bottom: 20px;
         }
         
         .required::after {
             content: '*';
-            color: #dc3545;
+            color: #ef4444;
             margin-left: 4px;
         }
         
         .hint {
             font-size: 0.85rem;
-            color: #666;
-            margin-top: 5px;
+            color: #64748b;
+            margin-top: 6px;
         }
         
         .form-actions {
             display: flex;
             gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
         }
         
         .btn-submit {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn-publish {
-            background-color: #0056b3;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
             color: white;
         }
         
         .btn-publish:hover {
-            background-color: #004494;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(21, 87, 176, 0.2);
         }
         
         .btn-draft {
-            background-color: #6c757d;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
             color: white;
         }
         
         .btn-draft:hover {
-            background-color: #5a6268;
-        }
-        
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
         }
         
         .section-title {
             font-size: 1.1rem;
-            margin-bottom: 20px;
+            color: #1a3b5d;
+            margin: 30px 0 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+        }
+        
+        .verification-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 15px;
+        }
+        
+        .verification-badge.verified {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+        
+        .verification-badge.pending {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+        }
+        
+        .verification-badge .icon {
+            margin-right: 6px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn-submit {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -440,11 +359,11 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
                         <?php if($is_verified): ?>
-                            <span class="verification-badge">
+                            <span class="verification-badge verified">
                                 <span class="icon">✓</span> Verified
                             </span>
                         <?php else: ?>
-                            <span class="verification-badge pending-verification">
+                            <span class="verification-badge pending">
                                 <span class="icon">⌛</span> Pending Verification
                             </span>
                         <?php endif; ?>

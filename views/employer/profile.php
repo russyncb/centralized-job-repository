@@ -363,44 +363,50 @@ $company_sizes = [
         .verification-badge {
             display: inline-flex;
             align-items: center;
-            background-color: rgba(232, 245, 233, 0.9);
-            color: #388e3c;
-            padding: 4px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.9rem;
+            font-weight: 500;
             margin-left: 15px;
-            backdrop-filter: blur(4px);
+        }
+        
+        .verification-badge.verified {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+        
+        .verification-badge.pending {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
         }
         
         .verification-badge .icon {
-            margin-right: 5px;
-        }
-        
-        .pending-verification {
-            background-color: rgba(255, 248, 225, 0.9);
-            color: #f57c00;
+            margin-right: 6px;
         }
         
         .profile-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
             margin-bottom: 30px;
         }
         
         .profile-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
+            padding: 25px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(to right, #f8fafc, #f1f5f9);
         }
         
         .profile-header h3 {
             margin: 0;
             font-size: 1.2rem;
+            color: #1a3b5d;
+            font-weight: 600;
         }
         
         .profile-content {
-            padding: 20px;
+            padding: 25px;
         }
         
         .form-group {
@@ -411,83 +417,115 @@ $company_sizes = [
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: #444;
+            color: #1a3b5d;
         }
         
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+            color: #1a3b5d;
+            background: #f8fafc;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+            background: white;
+        }
+        
+        .form-group input:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+            color: #64748b;
         }
         
         .form-group textarea {
-            height: 120px;
+            height: 150px;
             resize: vertical;
+            line-height: 1.6;
         }
         
         .form-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-        }
-        
-        .form-row .form-group {
-            flex: 1;
+            margin-bottom: 20px;
         }
         
         .required::after {
             content: '*';
-            color: #dc3545;
+            color: #ef4444;
             margin-left: 4px;
         }
         
         .btn-save {
-            background-color: #0056b3;
-            color: white;
+            padding: 12px 24px;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn-save:hover {
-            background-color: #004494;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(21, 87, 176, 0.2);
         }
         
         .message {
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            border-left: 4px solid #22c55e;
+            color: #15803d;
         }
         
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
         }
         
         .company-logo {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         
         .logo-preview {
-            width: 150px;
-            height: 150px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            width: 180px;
+            height: 180px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             overflow: hidden;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+        }
+        
+        .logo-preview:hover {
+            border-color: #1557b0;
+            background: white;
         }
         
         .logo-preview img {
@@ -498,15 +536,33 @@ $company_sizes = [
         
         .upload-hint {
             font-size: 0.85rem;
-            color: #666;
-            margin-top: 5px;
+            color: #64748b;
+            margin-top: 6px;
         }
         
         .section-title {
             font-size: 1.1rem;
-            margin-bottom: 20px;
+            color: #1a3b5d;
+            margin: 30px 0 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo-preview {
+                width: 150px;
+                height: 150px;
+            }
         }
     </style>
 </head>
@@ -521,12 +577,12 @@ $company_sizes = [
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
                         <?php if($employer['verified']): ?>
-                            <span class="verification-badge">
+                            <span class="verification-badge verified">
                                 <span class="icon">✓</span> Verified
                             </span>
                         <?php else: ?>
-                            <span class="verification-badge pending-verification">
-                                <span class="icon">⏱</span> Pending Verification
+                            <span class="verification-badge pending">
+                                <span class="icon">⌛</span> Pending Verification
                             </span>
                         <?php endif; ?>
                     </div>

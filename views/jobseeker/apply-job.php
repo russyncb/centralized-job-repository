@@ -10,16 +10,30 @@ if(!has_role('jobseeker')) {
     redirect(SITE_URL . '/views/auth/login.php', 'You do not have permission to access this page.', 'error');
 }
 
-// Check if job ID is provided
-if(!isset($_GET['id']) || empty($_GET['id'])) {
-    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job ID is required.', 'error');
-}
-
-$job_id = $_GET['id'];
-
 // Get database connection
 $database = new Database();
 $db = $database->getConnection();
+
+// Get job ID from URL
+$job_id = isset($_GET['id']) ? $_GET['id'] : null;
+
+if(!$job_id) {
+    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Invalid job ID.', 'error');
+}
+
+// Get job details
+$query = "SELECT j.*, e.company_name, e.company_logo 
+          FROM jobs j
+          JOIN employer_profiles e ON j.employer_id = e.employer_id
+          WHERE j.job_id = ?";
+$stmt = $db->prepare($query);
+$stmt->bindParam(1, $job_id);
+$stmt->execute();
+$job = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if(!$job) {
+    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job not found.', 'error');
+}
 
 // Get jobseeker profile
 $query = "SELECT jp.*, u.first_name, u.last_name, u.email, u.phone
@@ -31,99 +45,142 @@ $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
 $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if(!$jobseeker) {
-    redirect(SITE_URL . '/views/auth/logout.php', 'Jobseeker profile not found.', 'error');
-}
-
-$jobseeker_id = $jobseeker['jobseeker_id'];
-
 // Check if already applied
 $query = "SELECT * FROM applications WHERE job_id = ? AND jobseeker_id = ?";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $job_id);
-$stmt->bindParam(2, $jobseeker_id);
+$stmt->bindParam(2, $jobseeker['jobseeker_id']);
 $stmt->execute();
-
-if($stmt->rowCount() > 0) {
-    redirect(SITE_URL . '/views/jobseeker/view-job.php?id=' . $job_id, 'You have already applied for this job.', 'error');
+if($stmt->fetch()) {
+    redirect(SITE_URL . '/views/jobseeker/my-applications.php', 'You have already applied for this job.', 'info');
 }
 
-// Get job details
-$query = "SELECT j.*, e.company_name FROM jobs j
-         JOIN employer_profiles e ON j.employer_id = e.employer_id
-         WHERE j.job_id = ? AND j.status = 'active'";
-$stmt = $db->prepare($query);
-$stmt->bindParam(1, $job_id);
-$stmt->execute();
-$job = $stmt->fetch(PDO::FETCH_ASSOC);
+// Get existing documents
+$docs_query = "SELECT * FROM applicant_documents 
+               WHERE jobseeker_id = ? 
+               ORDER BY document_type, upload_date DESC";
+$docs_stmt = $db->prepare($docs_query);
+$docs_stmt->bindParam(1, $jobseeker['jobseeker_id']);
+$docs_stmt->execute();
+$documents = $docs_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if(!$job) {
-    redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job not found or no longer active.', 'error');
+// Group documents by type
+$grouped_documents = [];
+foreach($documents as $doc) {
+    $grouped_documents[$doc['document_type']][] = $doc;
 }
 
-// Check if application deadline has passed
-$deadline_passed = false;
-if(!empty($job['application_deadline'])) {
-    $deadline = new DateTime($job['application_deadline']);
-    $today = new DateTime();
-    $deadline_passed = $today > $deadline;
-    
-    if($deadline_passed) {
-        redirect(SITE_URL . '/views/jobseeker/view-job.php?id=' . $job_id, 'The application deadline for this job has passed.', 'error');
-    }
-}
-
-// Process form submission
+// Process application submission
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get form data
-    $cover_letter = trim($_POST['cover_letter']);
+    $selected_cv = $_POST['cv_document'] ?? null;
+    $selected_cover_letter = $_POST['cover_letter_document'] ?? null;
+    $selected_certificates = $_POST['certificate_documents'] ?? [];
+    $selected_others = $_POST['other_documents'] ?? [];
     
-    // Handle resume upload
-    $resume_path = $jobseeker['resume']; // Default to profile resume
+    $errors = [];
     
-    if(isset($_FILES['resume']) && $_FILES['resume']['error'] === 0) {
-        $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        $max_size = 5 * 1024 * 1024; // 5MB
-        
-        if(!in_array($_FILES['resume']['type'], $allowed_types)) {
-            $error = "Only PDF and Word documents are allowed.";
-        } elseif($_FILES['resume']['size'] > $max_size) {
-            $error = "File size must be less than 5MB.";
-        } else {
-            // Create uploads directory if it doesn't exist
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/resumes/';
-            if(!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            
-            // Generate unique filename
-            $filename = $jobseeker_id . '_' . time() . '_' . $_FILES['resume']['name'];
-            $target_file = $upload_dir . $filename;
-            
-            if(move_uploaded_file($_FILES['resume']['tmp_name'], $target_file)) {
-                // Set resume path
-                $resume_path = 'uploads/resumes/' . $filename;
-            } else {
-                $error = "Error uploading resume.";
-            }
-        }
+    // Validate required documents
+    if(!$selected_cv) {
+        $errors[] = "Please select or upload a CV.";
     }
     
-    // Insert application
-    if(!isset($error)) {
-        $query = "INSERT INTO applications (job_id, jobseeker_id, cover_letter, resume, status)
-                 VALUES (?, ?, ?, ?, 'pending')";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(1, $job_id);
-        $stmt->bindParam(2, $jobseeker_id);
-        $stmt->bindParam(3, $cover_letter);
-        $stmt->bindParam(4, $resume_path);
+    if(empty($errors)) {
+        // Start transaction
+        $db->beginTransaction();
         
-        if($stmt->execute()) {
-            redirect(SITE_URL . '/views/jobseeker/my-applications.php', 'Your application has been submitted successfully.', 'success');
-        } else {
-            $error = "Error submitting application. Please try again.";
+        try {
+            // Create application
+            $query = "INSERT INTO applications (job_id, jobseeker_id) VALUES (?, ?)";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(1, $job_id);
+            $stmt->bindParam(2, $jobseeker['jobseeker_id']);
+            $stmt->execute();
+            
+            $application_id = $db->lastInsertId();
+            
+            // Link selected documents to application
+            $selected_docs = array_merge(
+                [$selected_cv],
+                $selected_cover_letter ? [$selected_cover_letter] : [],
+                $selected_certificates,
+                $selected_others
+            );
+            
+            if(!empty($selected_docs)) {
+                $update_query = "UPDATE applicant_documents 
+                               SET application_id = ? 
+                               WHERE document_id IN (" . implode(',', array_fill(0, count($selected_docs), '?')) . ")";
+                $update_stmt = $db->prepare($update_query);
+                $update_stmt->bindValue(1, $application_id);
+                foreach($selected_docs as $i => $doc_id) {
+                    $update_stmt->bindValue($i + 2, $doc_id);
+                }
+                $update_stmt->execute();
+            }
+            
+            // Process new document uploads
+            $document_types = ['cv', 'cover_letter', 'certificate', 'other'];
+            foreach($document_types as $type) {
+                if(isset($_FILES["new_{$type}"]) && $_FILES["new_{$type}"]['error'] === 0) {
+                    $file = $_FILES["new_{$type}"];
+                    $title = $_POST["new_{$type}_title"];
+                    
+                    // Upload validation and processing (similar to profile.php)
+                    $allowed_types = [
+                        'application/pdf',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    ];
+                    $max_size = 5 * 1024 * 1024; // 5MB
+                    
+                    if(!in_array($file['type'], $allowed_types)) {
+                        throw new Exception("Only PDF and Word documents are allowed.");
+                    }
+                    if($file['size'] > $max_size) {
+                        throw new Exception("File size must be less than 5MB.");
+                    }
+                    
+                    // Create upload directory
+                    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/documents/' . $jobseeker['jobseeker_id'] . '/';
+                    if(!is_dir($upload_dir)) {
+                        mkdir($upload_dir, 0755, true);
+                    }
+                    
+                    // Generate filename and move file
+                    $filename = $type . '_' . time() . '_' . $file['name'];
+                    $target_file = $upload_dir . $filename;
+                    
+                    if(move_uploaded_file($file['tmp_name'], $target_file)) {
+                        // Add to database
+                        $doc_query = "INSERT INTO applicant_documents 
+                                    (jobseeker_id, application_id, document_type, file_path, 
+                                     original_filename, file_size, mime_type, document_title)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        $doc_stmt = $db->prepare($doc_query);
+                        $doc_stmt->bindParam(1, $jobseeker['jobseeker_id']);
+                        $doc_stmt->bindParam(2, $application_id);
+                        $doc_stmt->bindParam(3, $type);
+                        $doc_stmt->bindParam(4, 'uploads/documents/' . $jobseeker['jobseeker_id'] . '/' . $filename);
+                        $doc_stmt->bindParam(5, $file['name']);
+                        $doc_stmt->bindParam(6, $file['size']);
+                        $doc_stmt->bindParam(7, $file['type']);
+                        $doc_stmt->bindParam(8, $title);
+                        $doc_stmt->execute();
+                    } else {
+                        throw new Exception("Error uploading file.");
+                    }
+                }
+            }
+            
+            $db->commit();
+            redirect(SITE_URL . '/views/jobseeker/my-applications.php', 'Application submitted successfully.', 'success');
+            
+        } catch(Exception $e) {
+            $db->rollBack();
+            $error = $e->getMessage();
         }
+    } else {
+        $error = implode('<br>', $errors);
     }
 }
 ?>
@@ -136,10 +193,12 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
     <style>
-        /* Apply Job Styles */
+        /* Application Page Styles */
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         
         .jobseeker-container {
@@ -147,7 +206,140 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             min-height: 100vh;
         }
         
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            background: #f8fafc;
+            overflow-y: auto;
+            width: calc(100% - 250px);
+            transition: all 0.3s ease;
+        }
+        
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            color: #ffffff;
+            font-weight: 500;
+        }
+        
+        .job-header {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #f8fafc;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a3b5d;
+        }
+        
+        .job-info h2 {
+            margin: 0 0 5px;
+            color: #1a3b5d;
+            font-size: 1.5rem;
+        }
+        
+        .company-name {
+            color: #64748b;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .job-meta {
+            display: flex;
+            gap: 20px;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        
+        .application-form {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .form-header {
+            padding: 20px 25px;
+            background: linear-gradient(to right, #f8fafc, #f1f5f9);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .form-header h3 {
+            margin: 0;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+        }
+        
+        .form-content {
+            padding: 25px;
+        }
+        
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .error {
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
+        }
+        
+        .required-note {
+            margin-bottom: 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .required-note span {
+            color: #ef4444;
+        }
+
+        /* Sidebar Modernization */
         .sidebar {
+            position: relative;
             width: 250px;
             background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             color: #fff;
@@ -156,10 +348,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            transition: all 0.3s ease;
-            position: relative;
+            transition: width 0.3s ease;
         }
-        
+
         .sidebar-header {
             padding: 32px 20px 24px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -168,7 +359,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             gap: 12px;
         }
-        
+
         .sidebar-logo {
             background: #fff;
             color: #1a3b5d;
@@ -181,281 +372,152 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 1.2rem;
             font-weight: 600;
         }
-        
+
         .sidebar-header h3 {
             color: #fff;
             font-size: 1.25rem;
             margin: 0;
         }
-        
+
         .sidebar-menu {
             list-style: none;
             padding: 0;
             margin: 0;
             flex: 1;
         }
-        
+
         .sidebar-menu li {
             margin-bottom: 2px;
         }
-        
+
         .sidebar-menu a {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
-            color: rgba(255,255,255,0.8);
+            gap: 12px;
+            padding: 14px 28px;
+            color: #e4e7ec;
             text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-            font-size: 0.95rem;
+            font-size: 1.05rem;
+            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border-left-color: #fff;
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 12px;
-            width: 20px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
-        
-        .sidebar-toggle {
-            position: fixed;
+
+        .sidebar-menu a:before {
+            content: '';
+            position: absolute;
             left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #1557b0;
-            color: white;
-            border: none;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-menu a:hover:before {
+            width: 100%;
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left: 4px solid #ffd600;
+        }
+
+        .sidebar-menu a i {
+            font-size: 1.2rem;
             width: 24px;
-            height: 40px;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            z-index: 100;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-menu a span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-footer {
+            padding: 18px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+            color: #bfc9d9;
+            background: rgba(255,255,255,0.03);
+        }
+
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -16px;
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+            color: #1a3b5d;
             font-size: 1.2rem;
-            padding: 0;
             transition: all 0.3s ease;
         }
-        
-        .sidebar-toggle:hover {
-            background: #1a3b5d;
-        }
-        
+
         .sidebar.collapsed {
-            margin-left: -250px;
+            width: 70px;
         }
-        
-        .sidebar.collapsed + .main-content {
-            margin-left: 0;
+
+        .sidebar.collapsed .sidebar-toggle {
+            transform: rotate(180deg);
         }
-        
-        .sidebar.collapsed ~ .sidebar-toggle {
-            left: 0;
-            transform: translateY(-50%) rotate(180deg);
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .back-link {
-            color: #666;
-            text-decoration: none;
+
+        /* Modern Submit Button */
+        .btn-submit {
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
-        }
-        
-        .back-link:hover {
-            color: #333;
-            text-decoration: none;
-        }
-        
-        .back-icon {
-            margin-right: 5px;
-        }
-        
-        .application-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .job-summary {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .job-title {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-        
-        .company-name {
-            color: #666;
-            margin-bottom: 15px;
-        }
-        
-        .job-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        
-        .application-form {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-        }
-        
-        .form-header {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .form-header h2 {
-            margin: 0;
-            font-size: 1.2rem;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #444;
-        }
-        
-        .form-group textarea,
-        .form-group input[type="file"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
-        }
-        
-        .form-group textarea {
-            height: 200px;
-            resize: vertical;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            text-decoration: none;
-        }
-        
-        .btn-primary {
-            background-color: #0056b3;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #004494;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid #6c757d;
-            color: #6c757d;
-        }
-        
-        .btn-outline:hover {
-            background-color: #f8f9fa;
-            text-decoration: none;
-        }
-        
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .resume-section {
-            margin-bottom: 20px;
-        }
-        
-        .current-resume {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .resume-icon {
-            font-size: 1.5rem;
-            margin-right: 15px;
-            color: #0056b3;
-        }
-        
-        .resume-info {
-            flex: 1;
-        }
-        
-        .resume-name {
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-        
-        .resume-option {
-            margin-bottom: 10px;
-        }
-        
-        .form-actions {
-            display: flex;
             gap: 10px;
-            margin-top: 20px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .help-text {
-            font-size: 0.85rem;
-            color: #666;
-            margin-top: 5px;
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(21, 87, 176, 0.3);
+        }
+
+        .btn-submit::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+
+        .btn-submit:hover::after {
+            left: 100%;
         }
     </style>
 </head>
@@ -467,7 +529,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="sidebar-logo">
                     <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
                 </div>
-                <h3>ShaSha Jobseeker</h3>
+                <h3>ShaSha</h3>
             </div>
             
             <ul class="sidebar-menu">
@@ -482,79 +544,204 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="main-content">
             <div class="top-bar">
-                <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job_id; ?>" class="back-link">
-                    <span class="back-icon">←</span> Back to Job
-                </a>
+                <h1>Apply for Job</h1>
+                <div class="user-info">
+                    <span class="user-name"><?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?></span>
+                </div>
             </div>
             
-            <div class="application-container">
-                <?php if(isset($error)): ?>
-                    <div class="message error"><?php echo $error; ?></div>
+            <div class="job-header">
+                <?php if($job['company_logo']): ?>
+                    <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?>" class="company-logo">
+                <?php else: ?>
+                    <div class="company-logo">
+                        <?php echo strtoupper(substr($job['company_name'], 0, 2)); ?>
+                    </div>
                 <?php endif; ?>
                 
-                <div class="job-summary">
-                    <h1 class="job-title"><?php echo htmlspecialchars($job['title']); ?></h1>
+                <div class="job-info">
+                    <h2><?php echo htmlspecialchars($job['title']); ?></h2>
                     <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
                     <div class="job-meta">
-                        <span><i>📍</i> <?php echo htmlspecialchars($job['location']); ?></span>
-                        <span><i>💼</i> <?php echo ucfirst($job['job_type']); ?></span>
-                        <?php if(!empty($job['application_deadline'])): ?>
-                            <span><i>⏱️</i> Deadline: <?php echo date('M d, Y', strtotime($job['application_deadline'])); ?></span>
+                        <span>📍 <?php echo htmlspecialchars($job['location']); ?></span>
+                        <span>💼 <?php echo ucfirst($job['job_type']); ?></span>
+                        <?php if(!empty($job['salary_min']) || !empty($job['salary_max'])): ?>
+                            <span>💰 
+                                <?php 
+                                    if(!empty($job['salary_min']) && !empty($job['salary_max'])) {
+                                        echo $job['salary_currency'] . ' ' . number_format($job['salary_min']) . ' - ' . number_format($job['salary_max']);
+                                    } elseif(!empty($job['salary_min'])) {
+                                        echo $job['salary_currency'] . ' ' . number_format($job['salary_min']) . '+';
+                                    } elseif(!empty($job['salary_max'])) {
+                                        echo 'Up to ' . $job['salary_currency'] . ' ' . number_format($job['salary_max']);
+                                    }
+                                ?>
+                            </span>
                         <?php endif; ?>
                     </div>
                 </div>
+            </div>
+            
+            <?php if(isset($error)): ?>
+                <div class="message error"><?php echo $error; ?></div>
+            <?php endif; ?>
+            
+            <div class="application-form">
+                <div class="form-header">
+                    <h3>Submit Application</h3>
+                </div>
                 
-                <div class="application-form">
-                    <div class="form-header">
-                        <h2>Submit Your Application</h2>
+                <div class="form-content">
+                    <div class="required-note">
+                        Fields marked with <span>*</span> are required
                     </div>
                     
                     <form method="post" action="" enctype="multipart/form-data">
-                        <div class="resume-section">
-                            <?php if(!empty($jobseeker['resume'])): ?>
-                                <div class="current-resume">
-                                    <div class="resume-icon">📄</div>
-                                    <div class="resume-info">
-                                        <div class="resume-name">
-                                            <?php
-                                            $filename = basename($jobseeker['resume']);
-                                            $parts = explode('_', $filename, 3);
-                                            echo htmlspecialchars($parts[2] ?? $filename);
-                                            ?>
-                                        </div>
-                                        <div>Your current resume will be used by default</div>
-                                    </div>
+                        <!-- CV Section -->
+                        <div class="document-section">
+                            <h4 class="section-title">
+                                <span class="icon">📄</span> CV/Resume <span class="required">*</span>
+                            </h4>
+                            
+                            <?php if(isset($grouped_documents['cv'])): ?>
+                                <div class="document-list">
+                                    <?php foreach($grouped_documents['cv'] as $doc): ?>
+                                        <label class="document-item">
+                                            <input type="radio" name="cv_document" value="<?php echo $doc['document_id']; ?>" required>
+                                            <div class="document-info">
+                                                <div class="document-title"><?php echo htmlspecialchars($doc['document_title']); ?></div>
+                                                <div class="document-meta">
+                                                    Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="form-group">
-                                <label for="resume">Upload Resume (Optional)</label>
-                                <input type="file" id="resume" name="resume">
-                                <div class="help-text">
-                                    <?php if(!empty($jobseeker['resume'])): ?>
-                                        Upload a new resume or leave this empty to use your profile resume.
-                                    <?php else: ?>
-                                        Upload your resume. Accepted formats: PDF, DOC, DOCX. Max file size: 5MB.
-                                    <?php endif; ?>
+                            <div class="upload-new">
+                                <div class="form-group">
+                                    <label for="new_cv_title">Upload New CV</label>
+                                    <input type="text" id="new_cv_title" name="new_cv_title" placeholder="Document Title">
+                                </div>
+                                <div class="form-group">
+                                    <input type="file" id="new_cv" name="new_cv">
+                                    <div class="help-text">Accepted formats: PDF, DOC, DOCX. Max size: 5MB</div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="cover_letter">Cover Letter</label>
-                            <textarea id="cover_letter" name="cover_letter" placeholder="Explain why you're a good fit for this position..."><?php echo isset($_POST['cover_letter']) ? htmlspecialchars($_POST['cover_letter']) : ''; ?></textarea>
-                            <div class="help-text">Introduce yourself and explain why you're a good fit for this position.</div>
+                        <!-- Cover Letter Section -->
+                        <div class="document-section">
+                            <h4 class="section-title">
+                                <span class="icon">✉️</span> Cover Letter
+                            </h4>
+                            
+                            <?php if(isset($grouped_documents['cover_letter'])): ?>
+                                <div class="document-list">
+                                    <?php foreach($grouped_documents['cover_letter'] as $doc): ?>
+                                        <label class="document-item">
+                                            <input type="radio" name="cover_letter_document" value="<?php echo $doc['document_id']; ?>">
+                                            <div class="document-info">
+                                                <div class="document-title"><?php echo htmlspecialchars($doc['document_title']); ?></div>
+                                                <div class="document-meta">
+                                                    Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="upload-new">
+                                <div class="form-group">
+                                    <label for="new_cover_letter_title">Upload New Cover Letter</label>
+                                    <input type="text" id="new_cover_letter_title" name="new_cover_letter_title" placeholder="Document Title">
+                                </div>
+                                <div class="form-group">
+                                    <input type="file" id="new_cover_letter" name="new_cover_letter">
+                                    <div class="help-text">Accepted formats: PDF, DOC, DOCX. Max size: 5MB</div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="form-actions">
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job_id; ?>" class="btn btn-outline">Cancel</a>
-                            <button type="submit" class="btn btn-primary">Submit Application</button>
+                        <!-- Certificates Section -->
+                        <div class="document-section">
+                            <h4 class="section-title">
+                                <span class="icon">🎓</span> Certificates
+                            </h4>
+                            
+                            <?php if(isset($grouped_documents['certificate'])): ?>
+                                <div class="document-list">
+                                    <?php foreach($grouped_documents['certificate'] as $doc): ?>
+                                        <label class="document-item">
+                                            <input type="checkbox" name="certificate_documents[]" value="<?php echo $doc['document_id']; ?>">
+                                            <div class="document-info">
+                                                <div class="document-title"><?php echo htmlspecialchars($doc['document_title']); ?></div>
+                                                <div class="document-meta">
+                                                    Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="upload-new">
+                                <div class="form-group">
+                                    <label for="new_certificate_title">Upload New Certificate</label>
+                                    <input type="text" id="new_certificate_title" name="new_certificate_title" placeholder="Document Title">
+                                </div>
+                                <div class="form-group">
+                                    <input type="file" id="new_certificate" name="new_certificate">
+                                    <div class="help-text">Accepted formats: PDF, DOC, DOCX. Max size: 5MB</div>
+                                </div>
+                            </div>
                         </div>
+                        
+                        <!-- Other Documents Section -->
+                        <div class="document-section">
+                            <h4 class="section-title">
+                                <span class="icon">📎</span> Other Documents
+                            </h4>
+                            
+                            <?php if(isset($grouped_documents['other'])): ?>
+                                <div class="document-list">
+                                    <?php foreach($grouped_documents['other'] as $doc): ?>
+                                        <label class="document-item">
+                                            <input type="checkbox" name="other_documents[]" value="<?php echo $doc['document_id']; ?>">
+                                            <div class="document-info">
+                                                <div class="document-title"><?php echo htmlspecialchars($doc['document_title']); ?></div>
+                                                <div class="document-meta">
+                                                    Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="upload-new">
+                                <div class="form-group">
+                                    <label for="new_other_title">Upload New Document</label>
+                                    <input type="text" id="new_other_title" name="new_other_title" placeholder="Document Title">
+                                </div>
+                                <div class="form-group">
+                                    <input type="file" id="new_other" name="new_other">
+                                    <div class="help-text">Accepted formats: PDF, DOC, DOCX. Max size: 5MB</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-submit">
+                            <span class="icon">📤</span> Submit Application
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Sidebar Toggle

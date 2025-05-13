@@ -239,123 +239,13 @@ if(!empty($job_id_filter)) {
             min-height: 100vh;
         }
         
-        .sidebar {
-            width: 250px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            color: #fff;
-            padding: 0;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar-header {
-            padding: 32px 20px 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.03);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .sidebar-logo {
-            background: #fff;
-            color: #1a3b5d;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.7rem;
-            font-weight: bold;
-        }
-        
-        .sidebar-header h3 {
-            color: #fff;
-            font-size: 1.25rem;
-            margin: 0;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex: 1;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 2px;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 28px;
-            color: #e4e7ec;
-            text-decoration: none;
-            font-size: 1.05rem;
-            border-left: 4px solid transparent;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 0;
-            height: 100%;
-            background: rgba(255,255,255,0.1);
-            transition: width 0.3s ease;
-        }
-        
-        .sidebar-menu a:hover:before {
-            width: 100%;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            border-left: 4px solid #ffd600;
-        }
-        
-        .sidebar-menu a i {
-            font-size: 1.2rem;
-            width: 24px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-menu a span {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-footer {
-            padding: 18px 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.95rem;
-            color: #bfc9d9;
-            background: rgba(255,255,255,0.03);
-        }
-        
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 30px;
+            background: #f8fafc;
             overflow-y: auto;
-            transition: margin-left 0.3s ease;
-            margin-left: 0;
-        }
-        
-        .sidebar.collapsed + .main-content {
-            margin-left: 70px;
+            width: calc(100% - 250px);
+            transition: all 0.3s ease;
         }
         
         .top-bar {
@@ -377,179 +267,170 @@ if(!empty($job_id_filter)) {
             font-weight: 600;
         }
         
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .user-name {
-            font-size: 1.1rem;
-            color: #ffffff;
-            font-weight: 500;
-        }
-        
-        .company-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .company-name {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        
-        .verification-badge {
-            display: inline-flex;
-            align-items: center;
-            background-color: rgba(232, 245, 233, 0.9);
-            color: #388e3c;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-left: 15px;
-            backdrop-filter: blur(4px);
-        }
-        
-        .verification-badge .icon {
-            margin-right: 5px;
-        }
-        
-        .pending-verification {
-            background-color: rgba(255, 248, 225, 0.9);
-            color: #f57c00;
-        }
-        
-        .job-filter {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
         .message {
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            border-left: 4px solid #22c55e;
+            color: #15803d;
         }
         
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
         }
         
         .filters-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 30px;
         }
         
         .filter-form {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto auto;
             gap: 15px;
             align-items: flex-end;
         }
         
         .form-group {
-            flex: 1;
+            margin-bottom: 0;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: #444;
+            color: #1a3b5d;
             font-size: 0.9rem;
         }
         
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+            color: #1a3b5d;
+            background: #f8fafc;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+            background: white;
         }
         
         .btn-filter {
-            background-color: #0056b3;
-            color: white;
+            padding: 12px 24px;
             border: none;
-            padding: 9px 15px;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 45px;
+        }
+        
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(21, 87, 176, 0.2);
         }
         
         .btn-reset {
-            background-color: #6c757d;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
             color: white;
             text-decoration: none;
-            padding: 9px 15px;
-            border-radius: 4px;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 45px;
         }
         
         .btn-reset:hover {
-            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
             color: white;
             text-decoration: none;
         }
         
         .status-tabs {
             display: flex;
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 5px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
         
         .status-tab {
-            padding: 10px 20px;
+            padding: 12px 20px;
             cursor: pointer;
-            color: #555;
+            color: #64748b;
             font-weight: 500;
             position: relative;
             text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
         }
         
         .status-tab.active {
-            color: #0056b3;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            color: white;
         }
         
-        .status-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #0056b3;
-        }
-        
-        .status-tab:hover {
-            text-decoration: none;
-            color: #0056b3;
+        .status-tab:hover:not(.active) {
+            background: #f1f5f9;
+            color: #1a3b5d;
         }
         
         .status-count {
-            display: inline-block;
-            background-color: #f0f0f0;
-            color: #555;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 20px;
             padding: 2px 8px;
             font-size: 0.85rem;
             margin-left: 5px;
+            min-width: 24px;
+        }
+        
+        .status-tab:not(.active) .status-count {
+            background: #e2e8f0;
+            color: #64748b;
         }
         
         .applications-table {
-            width: 100%;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
         }
         
@@ -559,110 +440,208 @@ if(!empty($job_id_filter)) {
         }
         
         th, td {
-            padding: 12px 15px;
+            padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         th {
-            background-color: #f8f9fa;
+            background: linear-gradient(to right, #f8fafc, #f1f5f9);
             font-weight: 600;
-            color: #333;
+            color: #1a3b5d;
+            white-space: nowrap;
+        }
+        
+        tr:hover {
+            background: #f8fafc;
         }
         
         .applicant-name {
             font-weight: 500;
+            color: #1a3b5d;
         }
         
         .applicant-email {
             font-size: 0.85rem;
-            color: #666;
+            color: #64748b;
         }
         
         .job-title {
             font-weight: 500;
+            color: #1a3b5d;
         }
         
         .job-meta {
             font-size: 0.85rem;
-            color: #666;
+            color: #64748b;
+            margin-top: 4px;
         }
         
         .application-status {
-            display: inline-block;
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
+            font-weight: 500;
         }
         
         .status-pending {
-            background-color: #e0f7fa;
-            color: #0097a7;
+            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            color: white;
         }
         
         .status-shortlisted {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .status-rejected {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
         }
         
         .status-hired {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            color: white;
         }
         
         .actions {
             display: flex;
-            gap: 5px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         
         .btn-action {
-            padding: 5px 10px;
+            padding: 8px 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 0.85rem;
+            font-weight: 500;
             cursor: pointer;
-            background-color: #f0f0f0;
-            color: #333;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
         }
         
         .btn-view {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            color: white;
         }
         
         .btn-shortlist {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .btn-hire {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            color: white;
         }
         
         .btn-reject {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
         }
         
         .btn-reset {
-            background-color: #f5f5f5;
-            color: #757575;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            color: white;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .no-applications {
             text-align: center;
             padding: 50px 20px;
-            color: #666;
+            color: #64748b;
+        }
+        
+        .no-applications h3 {
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
         }
         
         .date-applied {
             white-space: nowrap;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .verification-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 15px;
+        }
+        
+        .verification-badge.verified {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+        
+        .verification-badge.pending {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+        }
+        
+        .verification-badge .icon {
+            margin-right: 6px;
+        }
+        
+        @media (max-width: 1024px) {
+            .filter-form {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .status-tabs {
+                overflow-x: auto;
+                padding: 5px;
+                gap: 5px;
+            }
+            
+            .status-tab {
+                padding: 10px 15px;
+                white-space: nowrap;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .applications-table {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+            }
         }
     </style>
 </head>
@@ -676,12 +655,12 @@ if(!empty($job_id_filter)) {
                 <div class="user-info">
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
-                        <?php if($is_verified): ?>
-                            <span class="verification-badge">
+                        <?php if($employer['verified']): ?>
+                            <span class="verification-badge verified">
                                 <span class="icon">✓</span> Verified
                             </span>
                         <?php else: ?>
-                            <span class="verification-badge pending-verification">
+                            <span class="verification-badge pending">
                                 <span class="icon">⌛</span> Pending Verification
                             </span>
                         <?php endif; ?>
