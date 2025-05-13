@@ -113,6 +113,7 @@ if(!empty($saved_jobs)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/chatbot.css">
     <style>
         /* Saved Jobs Styles */
         body {
@@ -982,115 +983,6 @@ if(!empty($saved_jobs)) {
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Sidebar Toggle
-            const sidebar = document.querySelector('.sidebar');
-            const sidebarToggle = document.querySelector('.sidebar-toggle');
-            
-            // Check localStorage for sidebar state
-            if(localStorage.getItem('sidebarCollapsed') === 'true') {
-                sidebar.classList.add('collapsed');
-            }
-            
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('collapsed');
-                // Save state to localStorage
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            });
-
-            // Add confirmation for logout
-            const logoutLink = document.querySelector('a[href*="logout.php"]');
-            if(logoutLink) {
-                logoutLink.addEventListener('click', function(e) {
-                    if(!confirm('Are you sure you want to logout?')) {
-                        e.preventDefault();
-                    }
-                });
-            }
-
-            // Add confirmation for remove action
-            const removeButtons = document.querySelectorAll('.remove-job');
-            if(removeButtons) {
-                removeButtons.forEach(button => {
-                    button.addEventListener('click', function(e) {
-                        if(!confirm('Are you sure you want to remove this job from your saved jobs?')) {
-                            e.preventDefault();
-                        }
-                    });
-                });
-            }
-            
-            // Chatbot logic
-            const chatbotIcon = document.getElementById('chatbot-icon');
-            const chatbotBox = document.getElementById('chatbot-box');
-            const closeChat = document.getElementById('close-chat');
-            const userInput = document.getElementById('user-input');
-            const sendMessage = document.getElementById('send-message');
-            const chatMessages = document.getElementById('chatbot-messages');
-            
-            chatbotIcon.addEventListener('click', function() {
-                chatbotBox.style.display = 'flex';
-                userInput.focus();
-            });
-            
-            closeChat.addEventListener('click', function() {
-                chatbotBox.style.display = 'none';
-            });
-            
-            function sendUserMessage() {
-                const message = userInput.value.trim();
-                if (message) {
-                    addMessage(message, 'user');
-                    userInput.value = '';
-                    setTimeout(() => {
-                        const response = getBotResponse(message);
-                        addMessage(response, 'bot');
-                    }, 600);
-                }
-            }
-            
-            sendMessage.addEventListener('click', sendUserMessage);
-            
-            userInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendUserMessage();
-                }
-            });
-            
-            function addMessage(text, sender) {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message');
-                messageDiv.classList.add(sender + '-message');
-                
-                const contentDiv = document.createElement('div');
-                contentDiv.classList.add('message-content');
-                contentDiv.textContent = text;
-                
-                messageDiv.appendChild(contentDiv);
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-            
-            function getBotResponse(message) {
-                message = message.toLowerCase();
-                if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-                    return "Hello! How can I help you with ShaSha today?";
-                } else if (message.includes('profile') || message.includes('update')) {
-                    return "To update your profile, click 'My Profile' in the sidebar.";
-                } else if (message.includes('job') && (message.includes('find') || message.includes('search') || message.includes('look'))) {
-                    return "To search for jobs, click 'Search Jobs' in the sidebar. You can filter by category, location, and more.";
-                } else if (message.includes('application') || message.includes('applied')) {
-                    return "To view your job applications, click 'My Applications' in the sidebar.";
-                } else if (message.includes('logout')) {
-                    return "To logout, click the 'Logout' button in the sidebar. You'll be asked to confirm before logging out.";
-                } else if (message.includes('thank')) {
-                    return "You're welcome! Is there anything else I can help you with?";
-                } else {
-                    return "I'm here to help! For specific questions, try using the sidebar or contact support if you need more assistance.";
-                }
-            }
-        });
-    </script>
+    <script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
 </body>
 </html>

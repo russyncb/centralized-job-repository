@@ -177,6 +177,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/chatbot.css">
     <style>
         /* Modern Sidebar */
         .sidebar {
@@ -1011,5 +1012,6 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             });
         });
     </script>
+    <script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
 </body>
 </html>

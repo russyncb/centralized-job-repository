@@ -125,6 +125,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/chatbot.css">
     <style>
         /* Sidebar Modernization */
         .sidebar {
@@ -198,9 +199,6 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             left: 0;
             top: 0;
             width: 0;
-            height: 100%;
-            background: rgba(255,255,255,0.1);
-            transition: width 0.3s ease;
         }
         
         .sidebar-menu a:hover:before {
@@ -235,38 +233,108 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         /* Dashboard Job Opportunities */
         .dashboard-jobs {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 24px;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
         .dashboard-job-card {
-            background: #fff;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
             color: #1a3b5d;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-            padding: 24px 32px;
-            flex: 1;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            min-width: 180px;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #eef2f7;
+            text-decoration: none;
+        }
+        .dashboard-job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-decoration: none;
         }
         .dashboard-job-card .icon {
-            font-size: 2.1rem;
-            margin-bottom: 10px;
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            color: rgba(255,255,255,0.9);
         }
         .dashboard-job-card .count {
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
+            color: inherit;
         }
         .dashboard-job-card .label {
-            font-size: 1.05rem;
-            color: #4a5568;
-            margin-bottom: 10px;
+            font-size: 1rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 12px;
+            font-weight: 500;
         }
         .dashboard-job-card .btn {
             margin-top: auto;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .dashboard-job-card .btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+        .dashboard-job-card .btn::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+        .dashboard-job-card .btn:hover::after {
+            left: 100%;
+        }
+        .dashboard-job-card.saved .btn:hover {
+            background: rgba(231,76,60,0.25);
+        }
+        .dashboard-job-card.jobs .btn:hover {
+            background: rgba(52,152,219,0.25);
+        }
+        .dashboard-job-card.new .btn:hover {
+            background: rgba(46,204,113,0.25);
+        }
+        .dashboard-job-card.jobs {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+        .dashboard-job-card.new {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+        .dashboard-job-card.applications {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+        }
+        .dashboard-job-card.saved {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
         }
         .profile-complete-badge {
             display: inline-block;
@@ -328,6 +396,14 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         .company-name {
             font-size: 1rem;
             color: rgba(255, 255, 255, 0.85);
+        }
+
+        .professional-headline {
+            color: #FFD700;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .top-bar h1 {
@@ -794,173 +870,163 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
 
         .recommended-jobs {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            padding: 25px;
             margin-bottom: 30px;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .job-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 20px;
             border: 1px solid #eef2f7;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job-card:nth-child(3n+1) {
+            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+        }
+
+        .job-card:nth-child(3n+2) {
+            background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);
+        }
+
+        .job-card:nth-child(3n+3) {
+            background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
+        }
+
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .job-header {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .job-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .company-name {
+            color: #64748b;
+            font-size: 0.95rem;
+            display: block;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .job-type, .job-location {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .deadline-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background: #e8f5e9;
+            color: #059669;
+            margin-top: 8px;
+        }
+
+        .category-match {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #f59e0b;
+            font-size: 0.9rem;
+            margin-top: 12px;
+        }
+
+        .category-match .icon {
+            font-size: 1rem;
+        }
+
+        .recent-applications {
+            background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.03);
+            padding: 30px;
+            border: 1px solid rgba(147, 197, 253, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recent-applications::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eef2f7;
+            margin-bottom: 25px;
+            position: relative;
         }
 
         .section-title {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            color: #0f172a;
+            color: #1e293b;
+            position: relative;
+            padding-bottom: 10px;
         }
 
-        .job-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .job-card {
-            background: #fff;
-            border: 1px solid #eef2f7;
-            border-radius: 10px;
-            padding: 20px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            cursor: pointer;
-        }
-
-        .job-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .job-company {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-
-        .company-logo {
-            width: 45px;
-            height: 45px;
-            border-radius: 8px;
-            background: #f8fafc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #eef2f7;
-        }
-
-        .company-logo img {
-            max-width: 35px;
-            max-height: 35px;
-            object-fit: contain;
-        }
-
-        .job-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-
-        .company-name {
-            color: #64748b;
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-        }
-
-        .job-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .job-tag {
-            background: #f1f5f9;
-            color: #334155;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-
-        .match-score {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: #ecfdf5;
-            color: #059669;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .recent-applications {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            padding: 25px;
-            border: 1px solid #eef2f7;
-        }
-
-        .application-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            border-radius: 2px;
         }
 
         .application-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            border: 1px solid #eef2f7;
-            border-radius: 8px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .application-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .application-status {
-            margin-left: auto;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .status-pending {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .status-accepted {
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .status-rejected {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .deadline-expired {
-            background: #fee2e2 !important;
-            color: #dc2626 !important;
-        }
-        
-        .deadline-active {
-            background: #ecfdf5 !important;
-            color: #059669 !important;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
     </style>
 </head>
@@ -993,60 +1059,30 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                     </div>
                     <?php if(!empty($jobseeker['headline'])): ?>
                         <div class="company-info">
-                            <span class="company-name"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
+                            <span class="professional-headline"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
             <div class="dashboard-jobs">
-                <div class="dashboard-job-card">
+                <a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="dashboard-job-card saved">
+                    <span class="icon">💾</span>
+                    <span class="count"><?php echo $saved_jobs_count > 99 ? '100+' : $saved_jobs_count; ?></span>
+                    <span class="label">Saved Jobs</span>
+                    <span class="btn">View Saved</span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="dashboard-job-card jobs">
                     <span class="icon">💼</span>
-                    <span class="count"><?php echo $total_jobs; ?></span>
+                    <span class="count"><?php echo $total_jobs > 99 ? '100+' : $total_jobs; ?></span>
                     <span class="label">Active Jobs</span>
-                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Browse Jobs</a>
-                </div>
-                <div class="dashboard-job-card">
+                    <span class="btn">Browse Jobs</span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="dashboard-job-card new">
                     <span class="icon">🆕</span>
-                    <span class="count"><?php echo $new_jobs; ?></span>
+                    <span class="count"><?php echo $new_jobs > 99 ? '100+' : $new_jobs; ?></span>
                     <span class="label">New This Week</span>
-                </div>
-            </div>
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Total Applications</div>
-                        <div class="card-icon">📝</div>
-                    </div>
-                    <div class="stat-value"><?php echo $total_applications; ?></div>
-                    <div class="stat-label">Applications submitted</div>
-                </div>
-                
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Active Jobs</div>
-                        <div class="card-icon">💼</div>
-                    </div>
-                    <div class="stat-value"><?php echo $total_jobs; ?></div>
-                    <div class="stat-label">Jobs available</div>
-                </div>
-                
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">New This Week</div>
-                        <div class="card-icon">🆕</div>
-                    </div>
-                    <div class="stat-value"><?php echo $new_jobs; ?></div>
-                    <div class="stat-label">New job postings</div>
-                </div>
-                
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <div class="card-title">Saved Jobs</div>
-                        <div class="card-icon">💾</div>
-                    </div>
-                    <div class="stat-value"><?php echo $saved_jobs_count; ?></div>
-                    <div class="stat-label">Jobs saved for later</div>
-                </div>
+                    <span class="btn">View New Jobs</span>
+                </a>
             </div>
 
             <div class="recommended-jobs">
@@ -1057,34 +1093,22 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                 <div class="job-grid">
                     <?php foreach($recommended_jobs as $job): ?>
                         <div class="job-card" onclick="window.location.href='<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>'">
-                            <div class="job-company">
-                                <div class="company-logo">
-                                    <?php if(!empty($job['company_logo'])): ?>
-                                        <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?> Logo">
-                                    <?php else: ?>
-                                        <span><?php echo strtoupper(substr($job['company_name'], 0, 1)); ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <div>
-                                    <div class="job-title"><?php echo htmlspecialchars($job['title']); ?></div>
-                                    <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
-                                </div>
+                            <div class="job-header">
+                                <div class="job-title"><?php echo htmlspecialchars($job['title']); ?></div>
+                                <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
                             </div>
-                            <div class="job-tags">
-                                <span class="job-tag"><?php echo ucfirst($job['job_type']); ?></span>
-                                <span class="job-tag"><?php echo htmlspecialchars($job['location']); ?></span>
-                                <?php if(!empty($job['salary_range'])): ?>
-                                    <span class="job-tag"><?php echo htmlspecialchars($job['salary_range']); ?></span>
-                                <?php endif; ?>
-                                <?php if(!empty($job['application_deadline'])): ?>
-                                    <span class="job-tag <?php echo strtotime($job['application_deadline']) < time() ? 'deadline-expired' : 'deadline-active'; ?>">
-                                        Deadline: <?php echo date('M d, Y', strtotime($job['application_deadline'])); ?>
-                                    </span>
-                                <?php endif; ?>
+                            <div class="job-meta">
+                                <span class="job-type"><?php echo ucfirst($job['job_type']); ?></span>
+                                <span class="job-location"><?php echo htmlspecialchars($job['location']); ?></span>
                             </div>
+                            <?php if(!empty($job['application_deadline'])): ?>
+                                <div class="deadline-tag">
+                                    Deadline: <?php echo date('M d, Y', strtotime($job['application_deadline'])); ?>
+                                </div>
+                            <?php endif; ?>
                             <?php if($job['category_match'] > 0): ?>
-                                <div class="match-score">
-                                    <span>✨</span> Category match
+                                <div class="category-match">
+                                    <span class="icon">✨</span> Category match
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -1154,14 +1178,8 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                     }
                 });
             }
-
-            // Chatbot icon click handler
-            const chatbotIcon = document.getElementById('chatbot-icon');
-            chatbotIcon.addEventListener('click', function() {
-                // You can implement your chatbot logic here
-                alert('Chat functionality coming soon!');
-            });
         });
     </script>
+    <script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
 </body>
 </html>
