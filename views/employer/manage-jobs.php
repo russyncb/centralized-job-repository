@@ -554,11 +554,24 @@ foreach($status_counts as $count) {
         }
         
         th {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f4f9 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
             font-weight: 600;
-            color: #1a3b5d;
+            color: white;
             padding: 16px 20px;
             font-size: 0.95rem;
+        }
+        
+        th a {
+            color: white !important;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        th a:hover {
+            opacity: 0.9;
         }
         
         td {
@@ -774,7 +787,7 @@ foreach($status_counts as $count) {
             <?php endif; ?>
             
             <div class="filters-container">
-                <form method="get" action="" class="filter-form">
+                <form method="get" action="" class="filter-form" id="jobFiltersForm">
                     <div class="form-group">
                         <label for="search">Search Jobs</label>
                         <input type="text" id="search" name="search" placeholder="Title, location, or category" value="<?php echo htmlspecialchars($search); ?>">
@@ -782,7 +795,7 @@ foreach($status_counts as $count) {
                     
                     <div class="form-group">
                         <label for="status">Status</label>
-                        <select id="status" name="status">
+                        <select id="status" name="status" onchange="if(!document.getElementById('search').value) this.form.submit()">
                             <option value="">All Statuses</option>
                             <option value="active" <?php if($status_filter == 'active') echo 'selected'; ?>>Active</option>
                             <option value="closed" <?php if($status_filter == 'closed') echo 'selected'; ?>>Closed</option>
@@ -790,7 +803,7 @@ foreach($status_counts as $count) {
                         </select>
                     </div>
                     
-                    <button type="submit" class="btn-filter">Apply Filters</button>
+                    <button type="submit" class="btn-filter" id="applyFiltersBtn">Apply Filters</button>
                     <a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="btn-reset">Reset</a>
                 </form>
             </div>
@@ -933,5 +946,27 @@ foreach($status_counts as $count) {
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            const statusSelect = document.getElementById('status');
+            const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+            const form = document.getElementById('jobFiltersForm');
+
+            // Hide the Apply Filters button by default
+            applyFiltersBtn.style.display = 'none';
+
+            // Show the button only when there's text in the search field
+            searchInput.addEventListener('input', function() {
+                applyFiltersBtn.style.display = this.value ? 'block' : 'none';
+            });
+
+            // If there's already text in search on page load, show the button
+            if (searchInput.value) {
+                applyFiltersBtn.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
