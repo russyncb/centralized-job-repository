@@ -75,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category_filter = isset($_GET['category']) ? $_GET['category'] : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+$job_id = isset($_GET['job_id']) ? intval($_GET['job_id']) : 0;
+$view_mode = isset($_GET['view']) ? $_GET['view'] : '';
 
 // Prepare the query
 $query = "SELECT j.job_id, j.title, j.location, j.job_type, j.category, j.status, j.posted_at, 
@@ -83,6 +85,19 @@ $query = "SELECT j.job_id, j.title, j.location, j.job_type, j.category, j.status
          JOIN employer_profiles e ON j.employer_id = e.employer_id
          JOIN users u ON e.user_id = u.user_id
          WHERE 1=1";
+
+// If specific job ID is provided (from recent activity click)
+if ($job_id > 0) {
+    $query .= " AND j.job_id = :job_id";
+    // Update page title to show we're viewing a specific job
+    $page_title = 'View Job';
+}
+
+// If view=recent, show only recent jobs (last 7 days)
+if ($view_mode === 'recent') {
+    $query .= " AND j.posted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+    $page_title = 'Recent Job Postings';
+}
 
 // Add search condition if provided
 if (!empty($search)) {
@@ -103,6 +118,11 @@ if (!empty($status_filter)) {
 $query .= " ORDER BY j.posted_at DESC";
 
 $stmt = $db->prepare($query);
+
+// Bind job_id if provided
+if ($job_id > 0) {
+    $stmt->bindParam(':job_id', $job_id);
+}
 
 // Bind search parameter if provided
 if (!empty($search)) {

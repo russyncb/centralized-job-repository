@@ -567,10 +567,20 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
             display: flex;
             padding: 15px 0;
             border-bottom: 1px solid #f0f0f0;
+            text-decoration: none;
+            color: inherit;
+            transition: background-color 0.2s ease;
         }
         
         .activity-item:last-child {
             border-bottom: none;
+        }
+        
+        .activity-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding-left: 10px;
+            padding-right: 10px;
         }
         
         .activity-icon {
@@ -613,6 +623,23 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
         .activity-time {
             font-size: 0.85rem;
             color: #777;
+        }
+        
+        .view-all-link {
+            font-size: 0.85rem;
+            color: #1a73e8;
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 15px;
+            background-color: #e8f0fe;
+            transition: background-color 0.2s ease;
+            margin-left: 10px;
+            display: inline-block;
+        }
+        
+        .view-all-link:hover {
+            background-color: #d2e3fc;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -767,7 +794,10 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
             
             <!-- Recent Activity Section (New) -->
             <div class="recent-activity">
-                <h2>Recent Activity</h2>
+                <h2>Recent Activity 
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php?view=recent" class="view-all-link">View All Users</a>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php?view=recent" class="view-all-link">View All Jobs</a>
+                </h2>
                 <div class="activity-list">
                     <?php
                     // Get recent user registrations
@@ -780,7 +810,7 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                     $recent_users = $recent_users_stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     // Get recent job postings
-                    $recent_jobs_query = "SELECT j.title, j.posted_at, e.company_name 
+                    $recent_jobs_query = "SELECT j.job_id, j.title, j.posted_at, e.company_name 
                                        FROM jobs j 
                                        JOIN employer_profiles e ON j.employer_id = e.employer_id 
                                        ORDER BY j.posted_at DESC 
@@ -792,7 +822,7 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                     // Display recent users
                     foreach($recent_users as $user): 
                     ?>
-                    <div class="activity-item">
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php?user_id=<?php echo $user['user_id']; ?>" class="activity-item">
                         <div class="activity-icon user">👤</div>
                         <div class="activity-content">
                             <div class="activity-title">
@@ -800,12 +830,12 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                             </div>
                             <div class="activity-time"><?php echo date('M d, Y H:i', strtotime($user['created_at'])); ?></div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                     
                     <!-- Display recent jobs -->
                     <?php foreach($recent_jobs as $job): ?>
-                    <div class="activity-item">
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php?job_id=<?php echo $job['job_id']; ?>" class="activity-item">
                         <div class="activity-icon job">💼</div>
                         <div class="activity-content">
                             <div class="activity-title">
@@ -813,7 +843,7 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                             </div>
                             <div class="activity-time"><?php echo date('M d, Y H:i', strtotime($job['posted_at'])); ?></div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                     
                     <?php if(count($recent_users) == 0 && count($recent_jobs) == 0): ?>

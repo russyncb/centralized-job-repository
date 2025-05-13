@@ -75,11 +75,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $role_filter = isset($_GET['role']) ? $_GET['role'] : '';
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+$view_mode = isset($_GET['view']) ? $_GET['view'] : '';
+$user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 
 // Prepare the query
 $query = "SELECT u.user_id, u.email, u.role, u.first_name, u.last_name, u.phone, u.status, u.created_at 
          FROM users u
          WHERE 1=1";
+
+// If specific user ID is provided
+if ($user_id > 0) {
+    $query .= " AND u.user_id = :user_id";
+}
+
+// If view=recent, show only recent users (last 7 days)
+if ($view_mode === 'recent') {
+    $query .= " AND u.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+    $page_title = 'Recent User Activity';
+}
 
 // Add search condition if provided
 if (!empty($search)) {
@@ -100,6 +113,11 @@ if (!empty($status_filter)) {
 $query .= " ORDER BY u.created_at DESC";
 
 $stmt = $db->prepare($query);
+
+// Bind user_id if provided
+if ($user_id > 0) {
+    $stmt->bindParam(':user_id', $user_id);
+}
 
 // Bind search parameter if provided
 if (!empty($search)) {
