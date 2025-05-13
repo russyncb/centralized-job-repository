@@ -39,24 +39,7 @@ $application_id = $_GET['id'];
 
 // Get application details
 $query = "SELECT a.*, j.title as job_title, j.location as job_location, j.job_type,
-         js.*, u.first_name, u.last_name, u.email, u.phone,
-         (SELECT GROUP_CONCAT(skill SEPARATOR ', ') 
-          FROM jobseeker_skills 
-          WHERE jobseeker_id = js.jobseeker_id) as skills,
-         (SELECT GROUP_CONCAT(CONCAT(degree, ' in ', field, ' from ', institution, ' (', graduation_year, ')') SEPARATOR '|') 
-          FROM jobseeker_education 
-          WHERE jobseeker_id = js.jobseeker_id) as education,
-         (SELECT GROUP_CONCAT(CONCAT(company, ' - ', position, ' (', 
-                            DATE_FORMAT(start_date, '%M %Y'), ' to ', 
-                            CASE 
-                                WHEN is_current = 1 THEN 'Present'
-                                ELSE DATE_FORMAT(end_date, '%M %Y')
-                            END, ')') SEPARATOR '|') 
-          FROM jobseeker_experience 
-          WHERE jobseeker_id = js.jobseeker_id
-          ORDER BY CASE WHEN is_current = 1 THEN 0 ELSE 1 END, 
-                   COALESCE(end_date, CURRENT_DATE) DESC, 
-                   start_date DESC) as experience
+         js.*, u.first_name, u.last_name, u.email, u.phone
          FROM applications a
          JOIN jobs j ON a.job_id = j.job_id
          JOIN jobseeker_profiles js ON a.jobseeker_id = js.jobseeker_id
@@ -73,9 +56,25 @@ if(!$application) {
     redirect(SITE_URL . '/views/employer/applications.php', 'Application not found or access denied.', 'error');
 }
 
+// Get applicant documents
+$docs_query = "SELECT * FROM applicant_documents 
+              WHERE application_id = ? 
+              ORDER BY document_type";
+$docs_stmt = $db->prepare($docs_query);
+$docs_stmt->bindParam(1, $application_id);
+$docs_stmt->execute();
+$documents = $docs_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group documents by type
+$grouped_documents = [];
+foreach($documents as $doc) {
+    $grouped_documents[$doc['document_type']][] = $doc;
+}
+
 // Process application actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
+    $notes = isset($_POST['notes']) ? $_POST['notes'] : '';
     
     switch($action) {
         case 'shortlist':
@@ -103,21 +102,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $message = "Application status updated.";
     }
     
-    // Update application status
-    $update_query = "UPDATE applications SET status = ? WHERE application_id = ?";
-    $update_stmt = $db->prepare($update_query);
-    $update_stmt->bindParam(1, $status);
-    $update_stmt->bindParam(2, $application_id);
+    // Start transaction
+    $db->beginTransaction();
     
-    if($update_stmt->execute()) {
+    try {
+        // Update application status
+        $update_query = "UPDATE applications SET status = ?, notes = ? WHERE application_id = ?";
+        $update_stmt = $db->prepare($update_query);
+        $update_stmt->bindParam(1, $status);
+        $update_stmt->bindParam(2, $notes);
+        $update_stmt->bindParam(3, $application_id);
+        $update_stmt->execute();
+        
+        // Log status change in application history
+        $history_query = "INSERT INTO application_history 
+                        (application_id, previous_status, new_status, notes, updated_by) 
+                        VALUES (?, ?, ?, ?, ?)";
+        
+        // Try to insert if table exists, don't throw error if it doesn't
+        try {
+            $history_stmt = $db->prepare($history_query);
+            $previous_status = $application['status'];
+            $history_stmt->bindParam(1, $application_id);
+            $history_stmt->bindParam(2, $previous_status);
+            $history_stmt->bindParam(3, $status);
+            $history_stmt->bindParam(4, $notes);
+            $history_stmt->bindParam(5, $_SESSION['user_id']);
+            $history_stmt->execute();
+        } catch(PDOException $e) {
+            // Silently handle if history table doesn't exist
+        }
+        
+        $db->commit();
         $_SESSION['message'] = $message;
         $_SESSION['message_type'] = "success";
         
         // Refresh application data
         $stmt->execute();
         $application = $stmt->fetch(PDO::FETCH_ASSOC);
-    } else {
-        $_SESSION['message'] = "Error updating application status.";
+    } catch(Exception $e) {
+        $db->rollBack();
+        $_SESSION['message'] = "Error: " . $e->getMessage();
         $_SESSION['message_type'] = "error";
     }
 }
@@ -420,6 +445,150 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             color: #64748b;
             line-height: 1.6;
         }
+        
+        /* Document Styles */
+        .documents-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .document-category {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .document-category:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .category-title {
+            font-size: 1rem;
+            color: #1a3b5d;
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .category-icon {
+            font-size: 1.2rem;
+        }
+        
+        .document-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .document-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .document-link:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-color: #1557b0;
+        }
+        
+        .document-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .document-info {
+            flex: 1;
+        }
+        
+        .document-title {
+            font-weight: 500;
+            color: #1a3b5d;
+            margin-bottom: 4px;
+        }
+        
+        .document-meta {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        
+        .no-documents-message {
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #64748b;
+            font-style: italic;
+            border: 1px dashed #e5e7eb;
+        }
+        
+        /* Notes Field Styles */
+        .action-form {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #1a3b5d;
+        }
+        
+        .notes-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+        }
+        
+        /* Display application notes if they exist */
+        .application-notes {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #1557b0;
+        }
+        
+        .notes-label {
+            font-weight: 500;
+            color: #1a3b5d;
+            margin-bottom: 10px;
+        }
+        
+        .notes-content {
+            color: #64748b;
+            white-space: pre-line;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -482,29 +651,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <span class="application-status status-<?php echo $application['status']; ?>">
                     <?php echo ucfirst($application['status']); ?>
                 </span>
+                
+                <?php if(!empty($application['notes'])): ?>
+                <div class="application-notes">
+                    <div class="notes-label">Decision Notes:</div>
+                    <div class="notes-content"><?php echo nl2br(htmlspecialchars($application['notes'])); ?></div>
+                </div>
+                <?php endif; ?>
             </div>
             
             <div class="application-content">
                 <div class="main-details">
-                    <?php if(!empty($application['experience'])): ?>
+                    <?php if(!empty($application['experience_years'])): ?>
                         <div class="section">
                             <h3 class="section-title">Work Experience</h3>
-                            <?php foreach(explode('|', $application['experience']) as $exp): ?>
-                                <div class="experience-item">
-                                    <?php echo htmlspecialchars($exp); ?>
-                                </div>
-                            <?php endforeach; ?>
+                            <div class="experience-item">
+                                <?php echo htmlspecialchars($application['experience_years']); ?> years of experience
+                            </div>
                         </div>
                     <?php endif; ?>
                     
-                    <?php if(!empty($application['education'])): ?>
+                    <?php if(!empty($application['education_level'])): ?>
                         <div class="section">
                             <h3 class="section-title">Education</h3>
-                            <?php foreach(explode('|', $application['education']) as $edu): ?>
-                                <div class="education-item">
-                                    <?php echo htmlspecialchars($edu); ?>
-                                </div>
-                            <?php endforeach; ?>
+                            <div class="education-item">
+                                <?php echo htmlspecialchars($application['education_level']); ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                     
@@ -519,7 +691,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </div>
                     <?php endif; ?>
                     
-                    <?php if(!empty($application['cover_letter'])): ?>
+                    <?php 
+                    // Only show the text-based cover letter if there are no uploaded cover letter documents
+                    $hasCoverLetterDocuments = !empty($grouped_documents['cover_letter']);
+                    if(!empty($application['cover_letter']) && !$hasCoverLetterDocuments): 
+                    ?>
                         <div class="section">
                             <h3 class="section-title">Cover Letter</h3>
                             <div class="cover-letter">
@@ -527,16 +703,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             </div>
                         </div>
                     <?php endif; ?>
+                    
+                    <!-- Application Documents Section -->
+                    <div class="section">
+                        <h3 class="section-title">Application Documents</h3>
+                        
+                        <?php if(empty($grouped_documents)): ?>
+                            <div class="no-documents-message">No documents attached to this application.</div>
+                        <?php else: ?>
+                            <div class="documents-container">
+                                <!-- CV Documents -->
+                                <?php if(!empty($grouped_documents['cv'])): ?>
+                                    <div class="document-category">
+                                        <h4 class="category-title"><span class="category-icon">📄</span> CV/Resume</h4>
+                                        <div class="document-list">
+                                            <?php foreach($grouped_documents['cv'] as $doc): ?>
+                                                <a href="<?php echo SITE_URL . '/' . $doc['file_path']; ?>" class="document-link" target="_blank" download>
+                                                    <div class="document-icon">📄</div>
+                                                    <div class="document-info">
+                                                        <div class="document-title"><?php echo htmlspecialchars($doc['document_title'] ?: $doc['original_filename']); ?></div>
+                                                        <div class="document-meta">
+                                                            <?php echo strtoupper(pathinfo($doc['original_filename'], PATHINFO_EXTENSION)); ?> 
+                                                            • <?php echo round($doc['file_size']/1024); ?> KB
+                                                            • Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <!-- Cover Letter Documents -->
+                                <?php if(!empty($grouped_documents['cover_letter'])): ?>
+                                    <div class="document-category">
+                                        <h4 class="category-title"><span class="category-icon">✉️</span> Cover Letter</h4>
+                                        <div class="document-list">
+                                            <?php foreach($grouped_documents['cover_letter'] as $doc): ?>
+                                                <a href="<?php echo SITE_URL . '/' . $doc['file_path']; ?>" class="document-link" target="_blank" download>
+                                                    <div class="document-icon">✉️</div>
+                                                    <div class="document-info">
+                                                        <div class="document-title"><?php echo htmlspecialchars($doc['document_title'] ?: $doc['original_filename']); ?></div>
+                                                        <div class="document-meta">
+                                                            <?php echo strtoupper(pathinfo($doc['original_filename'], PATHINFO_EXTENSION)); ?> 
+                                                            • <?php echo round($doc['file_size']/1024); ?> KB
+                                                            • Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <!-- Certificate Documents -->
+                                <?php if(!empty($grouped_documents['certificate'])): ?>
+                                    <div class="document-category">
+                                        <h4 class="category-title"><span class="category-icon">🎓</span> Certificates</h4>
+                                        <div class="document-list">
+                                            <?php foreach($grouped_documents['certificate'] as $doc): ?>
+                                                <a href="<?php echo SITE_URL . '/' . $doc['file_path']; ?>" class="document-link" target="_blank" download>
+                                                    <div class="document-icon">🎓</div>
+                                                    <div class="document-info">
+                                                        <div class="document-title"><?php echo htmlspecialchars($doc['document_title'] ?: $doc['original_filename']); ?></div>
+                                                        <div class="document-meta">
+                                                            <?php echo strtoupper(pathinfo($doc['original_filename'], PATHINFO_EXTENSION)); ?> 
+                                                            • <?php echo round($doc['file_size']/1024); ?> KB
+                                                            • Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <!-- Other Documents -->
+                                <?php if(!empty($grouped_documents['other'])): ?>
+                                    <div class="document-category">
+                                        <h4 class="category-title"><span class="category-icon">📎</span> Other Documents</h4>
+                                        <div class="document-list">
+                                            <?php foreach($grouped_documents['other'] as $doc): ?>
+                                                <a href="<?php echo SITE_URL . '/' . $doc['file_path']; ?>" class="document-link" target="_blank" download>
+                                                    <div class="document-icon">📎</div>
+                                                    <div class="document-info">
+                                                        <div class="document-title"><?php echo htmlspecialchars($doc['document_title'] ?: $doc['original_filename']); ?></div>
+                                                        <div class="document-meta">
+                                                            <?php echo strtoupper(pathinfo($doc['original_filename'], PATHINFO_EXTENSION)); ?> 
+                                                            • <?php echo round($doc['file_size']/1024); ?> KB
+                                                            • Uploaded <?php echo date('M d, Y', strtotime($doc['upload_date'])); ?>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 
                 <div class="side-panel">
                     <div class="actions-panel">
                         <h3 class="section-title">Actions</h3>
+                        <div class="action-form">
+                            <div class="form-group">
+                                <label for="action-notes">Decision Notes</label>
+                                <textarea id="action-notes" name="notes" placeholder="Add notes about your decision (optional)..." rows="4" class="notes-textarea"></textarea>
+                            </div>
+                        </div>
                         <div class="action-buttons">
                             <?php if($application['status'] != 'shortlisted' && $application['status'] != 'hired'): ?>
                                 <form method="post">
                                     <input type="hidden" name="action" value="shortlist">
-                                    <button type="submit" class="btn-action btn-shortlist">
+                                    <input type="hidden" name="notes" class="notes-hidden">
+                                    <button type="submit" class="btn-action btn-shortlist action-btn">
                                         <span class="icon">👍</span> Shortlist Candidate
                                     </button>
                                 </form>
@@ -545,7 +827,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <?php if($application['status'] != 'hired'): ?>
                                 <form method="post">
                                     <input type="hidden" name="action" value="hire">
-                                    <button type="submit" class="btn-action btn-hire">
+                                    <input type="hidden" name="notes" class="notes-hidden">
+                                    <button type="submit" class="btn-action btn-hire action-btn">
                                         <span class="icon">🎉</span> Hire Candidate
                                     </button>
                                 </form>
@@ -554,7 +837,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <?php if($application['status'] != 'rejected'): ?>
                                 <form method="post">
                                     <input type="hidden" name="action" value="reject">
-                                    <button type="submit" class="btn-action btn-reject">
+                                    <input type="hidden" name="notes" class="notes-hidden">
+                                    <button type="submit" class="btn-action btn-reject action-btn">
                                         <span class="icon">❌</span> Reject Application
                                     </button>
                                 </form>
@@ -563,7 +847,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <?php if($application['status'] != 'pending'): ?>
                                 <form method="post">
                                     <input type="hidden" name="action" value="reset">
-                                    <button type="submit" class="btn-action btn-reset">
+                                    <input type="hidden" name="notes" class="notes-hidden">
+                                    <button type="submit" class="btn-action btn-reset action-btn">
                                         <span class="icon">🔄</span> Reset Status
                                     </button>
                                 </form>
@@ -589,4 +874,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </div>
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sync notes across all action buttons
+        const notesTextarea = document.querySelector('.notes-textarea');
+        const hiddenNotesFields = document.querySelectorAll('.notes-hidden');
+        const actionButtons = document.querySelectorAll('.action-btn');
+        
+        if(notesTextarea) {
+            notesTextarea.addEventListener('input', function() {
+                const notes = this.value;
+                hiddenNotesFields.forEach(field => {
+                    field.value = notes;
+                });
+            });
+            
+            // Add confirmation for actions with required notes
+            actionButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const form = this.closest('form');
+                    const action = form.querySelector('input[name="action"]').value;
+                    
+                    if(action === 'reject' && !notesTextarea.value.trim()) {
+                        if(!confirm('Are you sure you want to reject this application without adding any notes?')) {
+                            e.preventDefault();
+                        }
+                    } else if((action === 'hire' || action === 'shortlist') && !confirm('Are you sure you want to ' + action + ' this candidate?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        }
+    });
+</script>
 </html> 
