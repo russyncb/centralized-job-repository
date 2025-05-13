@@ -15,7 +15,10 @@ $database = new Database();
 $db = $database->getConnection();
 
 // Get employer ID
-$query = "SELECT employer_id, verified FROM employer_profiles WHERE user_id = ?";
+$query = "SELECT e.employer_id, e.verified, e.company_name, u.first_name, u.last_name 
+          FROM employer_profiles e
+          JOIN users u ON e.user_id = u.user_id
+          WHERE e.user_id = ?";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
@@ -101,6 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 // Get filter parameters
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'posted_at';
+$sort_order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
 
 // Base query
 $query = "SELECT j.*, 
@@ -118,8 +123,18 @@ if(!empty($search)) {
     $query .= " AND (j.title LIKE ? OR j.location LIKE ? OR j.category LIKE ?)";
 }
 
-// Order by posted date, newest first
-$query .= " ORDER BY j.posted_at DESC";
+// Add sorting
+$valid_sort_columns = [
+    'title' => 'j.title',
+    'status' => 'j.status',
+    'applications' => 'applications_count',
+    'posted_at' => 'j.posted_at',
+    'deadline' => 'j.application_deadline'
+];
+
+$sort_column = isset($valid_sort_columns[$sort_by]) ? $valid_sort_columns[$sort_by] : 'j.posted_at';
+$sort_direction = $sort_order === 'ASC' ? 'ASC' : 'DESC';
+$query .= " ORDER BY " . $sort_column . " " . $sort_direction;
 
 $stmt = $db->prepare($query);
 
@@ -297,6 +312,12 @@ foreach($status_counts as $count) {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
+            margin-left: 0;
+        }
+        
+        .sidebar.collapsed + .main-content {
+            margin-left: 70px;
         }
         
         .top-bar {
@@ -614,25 +635,46 @@ foreach($status_counts as $count) {
         .pagination-link:hover:not(.active) {
             background-color: #f5f5f5;
         }
+        
+        .deadline {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .deadline.expired {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .deadline.ending-soon {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .no-deadline {
+            color: #757575;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+        
+        .jobs-table th a {
+            color: #333;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .jobs-table th a:hover {
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <div class="employer-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">SS</div>
-                <h3>ShaSha Employer</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i><span>Company Profile</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php"><i>📝</i><span>Post a Job</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="active"><i>💼</i><span>Manage Jobs</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php"><i>📋</i><span>Applications</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
-            </ul>
-        </div>
+        <?php include 'employer-sidebar.php'; ?>
         
         <div class="main-content">
             <div class="top-bar">
@@ -699,10 +741,31 @@ foreach($status_counts as $count) {
                     <table>
                         <thead>
                             <tr>
-                                <th>Job</th>
-                                <th>Status</th>
-                                <th>Applications</th>
-                                <th>Posted</th>
+                                <th>
+                                    <a href="?sort=title&order=<?php echo ($sort_by === 'title' && $sort_order === 'ASC') ? 'DESC' : 'ASC'; ?><?php echo !empty($status_filter) ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                        Job <?php echo $sort_by === 'title' ? ($sort_order === 'ASC' ? '↑' : '↓') : ''; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?sort=status&order=<?php echo ($sort_by === 'status' && $sort_order === 'ASC') ? 'DESC' : 'ASC'; ?><?php echo !empty($status_filter) ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                        Status <?php echo $sort_by === 'status' ? ($sort_order === 'ASC' ? '↑' : '↓') : ''; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?sort=applications&order=<?php echo ($sort_by === 'applications' && $sort_order === 'ASC') ? 'DESC' : 'ASC'; ?><?php echo !empty($status_filter) ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                        Applications <?php echo $sort_by === 'applications' ? ($sort_order === 'ASC' ? '↑' : '↓') : ''; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?sort=posted_at&order=<?php echo ($sort_by === 'posted_at' && $sort_order === 'ASC') ? 'DESC' : 'ASC'; ?><?php echo !empty($status_filter) ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                        Posted <?php echo $sort_by === 'posted_at' ? ($sort_order === 'ASC' ? '↑' : '↓') : ''; ?>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="?sort=deadline&order=<?php echo ($sort_by === 'deadline' && $sort_order === 'ASC') ? 'DESC' : 'ASC'; ?><?php echo !empty($status_filter) ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                        Deadline <?php echo $sort_by === 'deadline' ? ($sort_order === 'ASC' ? '↑' : '↓') : ''; ?>
+                                    </a>
+                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -730,6 +793,30 @@ foreach($status_counts as $count) {
                                         </a>
                                     </td>
                                     <td><?php echo date('M d, Y', strtotime($job['posted_at'])); ?></td>
+                                    <td>
+                                        <?php if($job['application_deadline']): ?>
+                                            <?php 
+                                            $deadline = new DateTime($job['application_deadline']);
+                                            $today = new DateTime();
+                                            $interval = $today->diff($deadline);
+                                            $deadline_passed = $today > $deadline;
+                                            ?>
+                                            <span class="deadline <?php echo $deadline_passed ? 'expired' : ($interval->days <= 7 ? 'ending-soon' : ''); ?>">
+                                                <?php 
+                                                if($deadline_passed) {
+                                                    echo 'Expired';
+                                                } else {
+                                                    echo date('M d, Y', strtotime($job['application_deadline']));
+                                                    if($interval->days <= 7) {
+                                                        echo ' (' . $interval->days . ' days left)';
+                                                    }
+                                                }
+                                                ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="no-deadline">No deadline</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <div class="actions">
                                             <a href="<?php echo SITE_URL; ?>/views/employer/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn-action btn-view">View</a>

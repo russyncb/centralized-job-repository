@@ -341,20 +341,7 @@ $applications = $stmt->fetch(PDO::FETCH_ASSOC);
 </head>
 <body>
     <div class="employer-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Employer</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i> Company Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php"><i>📝</i> Post a Job</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="active"><i>💼</i> Manage Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php"><i>📋</i> Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'employer-sidebar.php'; ?>
         
         <div class="main-content">
             <div class="top-bar">

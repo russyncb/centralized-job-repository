@@ -58,14 +58,43 @@ $stmt->bindParam(1, $jobseeker_id);
 $stmt->execute();
 $saved_jobs_count = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// Get recommended jobs
-$query = "SELECT j.*, e.company_name, e.company_logo
+// Get total active jobs (excluding expired)
+$total_jobs = $db->query("SELECT COUNT(*) as total FROM jobs 
+    WHERE status = 'active' 
+    AND (application_deadline IS NULL OR application_deadline >= CURDATE())")->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Get new jobs this week (excluding expired)
+$new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs 
+    WHERE status = 'active' 
+    AND posted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    AND (application_deadline IS NULL OR application_deadline >= CURDATE())")->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Get recommended jobs based on category preferences and recency
+$query = "SELECT j.*, e.company_name, e.company_logo,
+         CASE 
+            WHEN j.category IN (
+                SELECT DISTINCT j2.category 
+                FROM applications a 
+                JOIN jobs j2 ON a.job_id = j2.job_id 
+                WHERE a.jobseeker_id = ?
+            ) THEN 1 
+            ELSE 0 
+         END as category_match,
+         CASE
+            WHEN j.application_deadline IS NOT NULL AND j.application_deadline < CURDATE() THEN 'expired'
+            ELSE 'active'
+         END as deadline_status
          FROM jobs j
          JOIN employer_profiles e ON j.employer_id = e.employer_id
          WHERE j.status = 'active'
-         ORDER BY j.posted_at DESC
-         LIMIT 3";
+         AND (j.application_deadline IS NULL OR j.application_deadline >= CURDATE())
+         AND j.job_id NOT IN (SELECT job_id FROM applications WHERE jobseeker_id = ?)
+         ORDER BY category_match DESC, j.posted_at DESC
+         LIMIT 6";
+
 $stmt = $db->prepare($query);
+$stmt->bindParam(1, $jobseeker_id);
+$stmt->bindParam(2, $jobseeker_id);
 $stmt->execute();
 $recommended_jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -87,11 +116,6 @@ foreach($profile_fields as $field => $label) {
 
 $profile_complete = empty($missing_fields);
 $profile_completion = 100 - (count($missing_fields) * 20);
-
-// Get total active jobs
-$total_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'active'")->fetch(PDO::FETCH_ASSOC)['total'];
-// Get new jobs this week
-$new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'active' AND posted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetch(PDO::FETCH_ASSOC)['total'];
 ?>
 
 <!DOCTYPE html>
@@ -267,8 +291,8 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         
         .main-content {
             flex: 1;
-            padding: 20px;
-            overflow-y: auto;
+            padding: 30px;
+            background: #f8fafc;
         }
         
         .top-bar {
@@ -276,10 +300,11 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
         
         .user-info {
@@ -290,7 +315,7 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
         }
         
@@ -302,7 +327,14 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         
         .company-name {
             font-size: 1rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
         
         .grid-container {
@@ -701,6 +733,235 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
             height: 28px;
             color: white;
         }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            padding: 25px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            border: 1px solid #eef2f7;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .recommended-jobs {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid #eef2f7;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .job-card {
+            background: #fff;
+            border: 1px solid #eef2f7;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .job-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .job-company {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .company-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eef2f7;
+        }
+
+        .company-logo img {
+            max-width: 35px;
+            max-height: 35px;
+            object-fit: contain;
+        }
+
+        .job-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .company-name {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .job-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .job-tag {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .match-score {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ecfdf5;
+            color: #059669;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .recent-applications {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            padding: 25px;
+            border: 1px solid #eef2f7;
+        }
+
+        .application-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .application-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid #eef2f7;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .application-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .application-status {
+            margin-left: auto;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-accepted {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .deadline-expired {
+            background: #fee2e2 !important;
+            color: #dc2626 !important;
+        }
+        
+        .deadline-active {
+            background: #ecfdf5 !important;
+            color: #059669 !important;
+        }
     </style>
 </head>
 <body>
@@ -711,7 +972,7 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
                 <div class="sidebar-logo">
                     <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
                 </div>
-                <h3>ShaSha Jobseeker</h3>
+                <h3>ShaSha</h3>
             </div>
             
             <ul class="sidebar-menu">
@@ -725,16 +986,16 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
         </div>
         <div class="main-content">
             <div class="top-bar">
-                <div class="welcome-section">
-                    <h1>Jobseeker Dashboard</h1>
-                    <p>Welcome back, <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?></p>
+                <h1>Dashboard</h1>
+                <div class="user-info">
+                    <div class="user-name">
+                        <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?>
+                    </div>
                     <?php if(!empty($jobseeker['headline'])): ?>
-                        <div class="headline"><?php echo htmlspecialchars($jobseeker['headline']); ?></div>
+                        <div class="company-info">
+                            <span class="company-name"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
+                        </div>
                     <?php endif; ?>
-                </div>
-                <div class="action-buttons">
-                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-outline">Update Resume</a>
-                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Browse Jobs</a>
                 </div>
             </div>
             <div class="dashboard-jobs">
@@ -750,147 +1011,111 @@ $new_jobs = $db->query("SELECT COUNT(*) as total FROM jobs WHERE status = 'activ
                     <span class="label">New This Week</span>
                 </div>
             </div>
-            <div class="grid-container">
-                <div class="main-column">
-                    <div class="profile-card">
-                        <div class="profile-header">
-                            <div class="profile-avatar">
-                                <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
-                            </div>
-                            <div class="profile-info">
-                                <h2><?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?></h2>
-                                <?php if(!empty($jobseeker['headline'])): ?>
-                                    <div class="profile-headline"><?php echo htmlspecialchars($jobseeker['headline']); ?></div>
-                                <?php else: ?>
-                                    <div class="profile-headline">No headline set</div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <?php if($profile_complete): ?>
-                            <div class="profile-complete-badge">Profile Complete ✔</div>
-                        <?php else: ?>
-                        <div class="profile-completion">
-                            <div class="progress-bar">
-                                <div class="progress" style="width: <?php echo $profile_completion; ?>%;"></div>
-                            </div>
-                            <div class="progress-label">
-                                <span>Profile Completion</span>
-                                <span><?php echo $profile_completion; ?>%</span>
-                            </div>
-                            <div>
-                                Missing: <?php echo implode(', ', $missing_fields); ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                        <div class="profile-actions">
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-outline">Update Profile</a>
-                        </div>
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">Total Applications</div>
+                        <div class="card-icon">📝</div>
                     </div>
-                    
-                    <h3 class="section-title"><span class="icon">📝</span> Recent Applications</h3>
-                    <div class="application-list">
-                        <?php if(count($recent_applications) > 0): ?>
-                            <?php foreach($recent_applications as $application): ?>
-                                <div class="application-item">
-                                    <div class="company-logo">
-                                        <?php if(!empty($application['company_logo'])): ?>
-                                            <img src="<?php echo SITE_URL . '/' . $application['company_logo']; ?>" alt="Company Logo">
-                                        <?php else: ?>
-                                            <span><?php echo strtoupper(substr($application['company_name'], 0, 1)); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="application-details">
-                                        <div class="job-title"><?php echo htmlspecialchars($application['job_title']); ?></div>
-                                        <div class="company-name"><?php echo htmlspecialchars($application['company_name']); ?></div>
-                                        <div class="application-meta">
-                                            <span><?php echo htmlspecialchars($application['job_location']); ?></span>
-                                            <span><?php echo ucfirst($application['job_type']); ?></span>
-                                            <span>Applied: <?php echo date('M d, Y', strtotime($application['applied_at'])); ?></span>
-                                        </div>
-                                    </div>
-                                    <span class="application-status status-<?php echo $application['status']; ?>">
-                                        <?php echo ucfirst($application['status']); ?>
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                            
-                            <div class="view-all">
-                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="btn btn-outline">View All Applications</a>
-                            </div>
-                        <?php else: ?>
-                            <div class="no-items">
-                                <p>You haven't applied to any jobs yet.</p>
-                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Search Jobs</a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <h3 class="section-title"><span class="icon">✨</span> Recommended Jobs</h3>
-                    <div class="recommended-jobs">
-                        <?php if(count($recommended_jobs) > 0): ?>
-                            <?php foreach($recommended_jobs as $job): ?>
-                                <div class="job-card">
-                                    <div class="job-header">
-                                        <div class="company-logo">
-                                            <?php if(!empty($job['company_logo'])): ?>
-                                                <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="Company Logo">
-                                            <?php else: ?>
-                                                <span><?php echo strtoupper(substr($job['company_name'], 0, 1)); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="job-info">
-                                            <div class="job-title">
-                                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>">
-                                                    <?php echo htmlspecialchars($job['title']); ?>
-                                                </a>
-                                            </div>
-                                            <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
-                                            <div class="job-meta">
-                                                <span><?php echo htmlspecialchars($job['location']); ?></span>
-                                                <span><?php echo ucfirst($job['job_type']); ?></span>
-                                                <span>Posted: <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="job-actions">
-                                        <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn btn-primary">View Job</a>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                            <div class="view-all">
-                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-outline">View All Jobs</a>
-                            </div>
-                        <?php else: ?>
-                            <div class="no-items">
-                                <p>No recommended jobs available at the moment.</p>
-                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Search Jobs</a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                    <div class="stat-value"><?php echo $total_applications; ?></div>
+                    <div class="stat-label">Applications submitted</div>
                 </div>
                 
-                <div class="side-column">
-                    <div class="stats-cards">
-                        <div class="stat-card">
-                            <div class="stat-icon">📝</div>
-                            <div class="stat-number"><?php echo $total_applications; ?></div>
-                            <div class="stat-label">Applications</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">💾</div>
-                            <div class="stat-number"><?php echo $saved_jobs_count; ?></div>
-                            <div class="stat-label">Saved Jobs</div>
-                        </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">Active Jobs</div>
+                        <div class="card-icon">💼</div>
                     </div>
-                    
-                    <div class="profile-card">
-                        <h3 class="section-title"><span class="icon">🔍</span> Quick Actions</h3>
-                        <div class="quick-actions">
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">Find Jobs</a>
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="btn btn-outline" style="width: 100%; margin-bottom: 10px;">Update Resume</a>
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="btn btn-outline" style="width: 100%;">View Saved Jobs</a>
-                        </div>
+                    <div class="stat-value"><?php echo $total_jobs; ?></div>
+                    <div class="stat-label">Jobs available</div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">New This Week</div>
+                        <div class="card-icon">🆕</div>
                     </div>
+                    <div class="stat-value"><?php echo $new_jobs; ?></div>
+                    <div class="stat-label">New job postings</div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">Saved Jobs</div>
+                        <div class="card-icon">💾</div>
+                    </div>
+                    <div class="stat-value"><?php echo $saved_jobs_count; ?></div>
+                    <div class="stat-label">Jobs saved for later</div>
+                </div>
+            </div>
+
+            <div class="recommended-jobs">
+                <div class="section-header">
+                    <div class="section-title">Recommended Jobs</div>
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-outline">View All Jobs</a>
+                </div>
+                <div class="job-grid">
+                    <?php foreach($recommended_jobs as $job): ?>
+                        <div class="job-card" onclick="window.location.href='<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>'">
+                            <div class="job-company">
+                                <div class="company-logo">
+                                    <?php if(!empty($job['company_logo'])): ?>
+                                        <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?> Logo">
+                                    <?php else: ?>
+                                        <span><?php echo strtoupper(substr($job['company_name'], 0, 1)); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <div class="job-title"><?php echo htmlspecialchars($job['title']); ?></div>
+                                    <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
+                                </div>
+                            </div>
+                            <div class="job-tags">
+                                <span class="job-tag"><?php echo ucfirst($job['job_type']); ?></span>
+                                <span class="job-tag"><?php echo htmlspecialchars($job['location']); ?></span>
+                                <?php if(!empty($job['salary_range'])): ?>
+                                    <span class="job-tag"><?php echo htmlspecialchars($job['salary_range']); ?></span>
+                                <?php endif; ?>
+                                <?php if(!empty($job['application_deadline'])): ?>
+                                    <span class="job-tag <?php echo strtotime($job['application_deadline']) < time() ? 'deadline-expired' : 'deadline-active'; ?>">
+                                        Deadline: <?php echo date('M d, Y', strtotime($job['application_deadline'])); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if($job['category_match'] > 0): ?>
+                                <div class="match-score">
+                                    <span>✨</span> Category match
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="recent-applications">
+                <div class="section-header">
+                    <div class="section-title">Recent Applications</div>
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="btn btn-outline">View All Applications</a>
+                </div>
+                <div class="application-list">
+                    <?php foreach($recent_applications as $application): ?>
+                        <div class="application-item">
+                            <div class="company-logo">
+                                <?php if(!empty($application['company_logo'])): ?>
+                                    <img src="<?php echo SITE_URL . '/' . $application['company_logo']; ?>" alt="Company Logo">
+                                <?php else: ?>
+                                    <span><?php echo strtoupper(substr($application['company_name'], 0, 1)); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div>
+                                <div class="job-title"><?php echo htmlspecialchars($application['job_title']); ?></div>
+                                <div class="company-name"><?php echo htmlspecialchars($application['company_name']); ?></div>
+                            </div>
+                            <div class="application-status status-<?php echo $application['status']; ?>">
+                                <?php echo ucfirst($application['status']); ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>

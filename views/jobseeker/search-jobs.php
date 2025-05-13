@@ -45,6 +45,9 @@ $job_type = isset($_GET['job_type']) ? $_GET['job_type'] : '';
 $conditions = ["j.status = 'active'"];
 $params = [];
 
+// Add condition to exclude expired jobs
+$conditions[] = "(j.application_deadline IS NULL OR j.application_deadline >= CURDATE())";
+
 if(!empty($keyword)) {
     $conditions[] = "(j.title LIKE ? OR j.description LIKE ? OR e.company_name LIKE ?)";
     $keyword_param = '%' . $keyword . '%';
@@ -293,10 +296,11 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
         
         .user-info {
@@ -307,8 +311,26 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
         
         .search-container {
@@ -453,11 +475,6 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
             text-decoration: underline;
         }
         
-        .company-name {
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
         .job-meta {
             display: flex;
             flex-wrap: wrap;
@@ -481,6 +498,7 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
             margin-bottom: 15px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -586,6 +604,11 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
             margin-bottom: 20px;
         }
         
+        .deadline-info {
+            color: #e65100;
+            font-weight: 500;
+        }
+        
         @media (max-width: 768px) {
             .jobseeker-container {
                 flex-direction: column;
@@ -617,7 +640,7 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                 <div class="sidebar-logo">
                     <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
                 </div>
-                <h3>ShaSha Jobseeker</h3>
+                <h3>ShaSha</h3>
             </div>
             
             <ul class="sidebar-menu">
@@ -707,9 +730,22 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                                 </div>
                                 <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
                                 <div class="job-meta">
-                                    <span><i>📍</i> <?php echo htmlspecialchars($job['location']); ?></span>
-                                    <span><i>💼</i> <?php echo ucfirst(htmlspecialchars($job['job_type'])); ?></span>
-                                    <span><i>📅</i> Posted <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
+                                    <?php echo htmlspecialchars($job['location']); ?> • <?php echo ucfirst($job['job_type']); ?> • <?php echo htmlspecialchars($job['category']); ?>
+                                    <?php if($job['application_deadline']): ?>
+                                        <?php 
+                                        $deadline = new DateTime($job['application_deadline']);
+                                        $today = new DateTime();
+                                        $interval = $today->diff($deadline);
+                                        ?>
+                                        <span class="deadline-info">
+                                            • Deadline: <?php 
+                                            echo date('M d, Y', strtotime($job['application_deadline']));
+                                            if($interval->days <= 7) {
+                                                echo ' (' . $interval->days . ' days left)';
+                                            }
+                                            ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="job-description">
                                     <?php 

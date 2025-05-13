@@ -28,7 +28,8 @@ $sql = "SELECT j.*, e.company_name, e.company_logo, c.name AS category_name
         FROM jobs j
         JOIN employer_profiles e ON j.employer_id = e.employer_id
         LEFT JOIN job_categories c ON j.category = c.name
-        WHERE j.status = 'active'";
+        WHERE j.status = 'active'
+        AND (j.application_deadline IS NULL OR j.application_deadline >= CURDATE())";
 $params = [];
 if ($keyword) {
     $sql .= " AND (j.title LIKE :keyword OR j.description LIKE :keyword)";
@@ -133,6 +134,14 @@ $total_pages = ceil($total_jobs / $limit);
         .job-card .btn-view { margin-top: 18px; align-self: flex-start; background: #1a73e8; color: #fff; border: none; border-radius: 6px; padding: 10px 22px; font-weight: 600; font-size: 1rem; transition: all 0.3s; text-decoration: none; }
         .job-card .btn-view:hover { background: #1557b0; }
         .no-jobs { text-align: center; color: #888; font-size: 1.2rem; margin-top: 40px; }
+        .job-meta .deadline {
+            color: #e65100;
+            font-weight: 500;
+        }
+        
+        .job-meta .deadline i {
+            color: #ef6c00;
+        }
     </style>
 </head>
 <body>
@@ -227,10 +236,29 @@ $total_pages = ceil($total_jobs / $limit);
                                 <span class="job-type"><?php echo ucfirst($job['job_type']); ?></span>
                             </div>
                             <div class="job-details">
-                                <div><strong>Location:</strong> <?php echo htmlspecialchars($job['location']); ?></div>
+                                <div class="job-meta">
+                                    <span class="location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($job['location']); ?></span>
+                                    <span class="job-type"><i class="fas fa-briefcase"></i> <?php echo ucfirst($job['job_type']); ?></span>
+                                    <?php if($job['application_deadline']): ?>
+                                        <?php 
+                                        $deadline = new DateTime($job['application_deadline']);
+                                        $today = new DateTime();
+                                        $interval = $today->diff($deadline);
+                                        ?>
+                                        <span class="deadline">
+                                            <i class="fas fa-clock"></i>
+                                            <?php 
+                                            echo 'Deadline: ' . date('M d, Y', strtotime($job['application_deadline']));
+                                            if($interval->days <= 7) {
+                                                echo ' (' . $interval->days . ' days left)';
+                                            }
+                                            ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <span class="posted-date"><i class="fas fa-calendar"></i> Posted <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
+                                </div>
                                 <div><strong>Category:</strong> <?php echo htmlspecialchars($job['category']); ?></div>
                                 <div><strong>Salary:</strong> <?php echo $job['salary_min'] ? '$' . number_format($job['salary_min']) : 'N/A'; ?> - <?php echo $job['salary_max'] ? '$' . number_format($job['salary_max']) : 'N/A'; ?> <?php echo htmlspecialchars($job['salary_currency']); ?></div>
-                                <div><strong>Deadline:</strong> <?php echo $job['application_deadline'] ? format_date($job['application_deadline']) : 'N/A'; ?></div>
                             </div>
                             <div class="job-tags">
                                 <?php if($job['requirements']): ?>

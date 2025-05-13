@@ -327,10 +327,11 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
         
         .user-info {
@@ -341,8 +342,50 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
+        }
+        
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .company-name {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .specialist-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            margin-left: 12px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .specialist-badge .icon {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+
+        .specialist-badge .years {
+            color: #ffd700;
+            font-weight: 600;
+            margin: 0 4px;
         }
         
         /* Floating Chatbot */
@@ -739,7 +782,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                 <div class="sidebar-logo">
                     <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
                 </div>
-                <h3>ShaSha Jobseeker</h3>
+                <h3>ShaSha</h3>
             </div>
             
             <ul class="sidebar-menu">

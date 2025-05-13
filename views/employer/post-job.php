@@ -15,7 +15,10 @@ $database = new Database();
 $db = $database->getConnection();
 
 // Get employer ID
-$query = "SELECT employer_id, verified FROM employer_profiles WHERE user_id = ?";
+$query = "SELECT e.employer_id, e.verified, e.company_name, u.first_name, u.last_name 
+          FROM employer_profiles e
+          JOIN users u ON e.user_id = u.user_id
+          WHERE e.user_id = ?";
 $stmt = $db->prepare($query);
 $stmt->bindParam(1, $_SESSION['user_id']);
 $stmt->execute();
@@ -232,6 +235,11 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+        
+        .sidebar.collapsed + .main-content {
+            margin-left: -180px;
         }
         
         .top-bar {
@@ -394,21 +402,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
 </head>
 <body>
     <div class="employer-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">SS</div>
-                <h3>ShaSha Employer</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i><span>Company Profile</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php" class="active"><i>📝</i><span>Post a Job</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php"><i>💼</i><span>Manage Jobs</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php"><i>📋</i><span>Applications</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
-            </ul>
-        </div>
+        <?php include 'employer-sidebar.php'; ?>
         
         <div class="main-content">
             <div class="top-bar">

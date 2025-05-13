@@ -91,6 +91,8 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         
         .employer-container {
@@ -98,117 +100,16 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             min-height: 100vh;
         }
         
-        .sidebar {
-            width: 250px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            color: #fff;
-            padding: 0;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.07);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar-header {
-            padding: 32px 20px 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.03);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .sidebar-logo {
-            background: #fff;
-            color: #1a3b5d;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.7rem;
-            font-weight: bold;
-        }
-        
-        .sidebar-header h3 {
-            color: #fff;
-            font-size: 1.25rem;
-            margin: 0;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex: 1;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 2px;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 28px;
-            color: #e4e7ec;
-            text-decoration: none;
-            font-size: 1.05rem;
-            border-left: 4px solid transparent;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .sidebar-menu a:before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 0;
-            height: 100%;
-            background: rgba(255,255,255,0.1);
-            transition: width 0.3s ease;
-        }
-        
-        .sidebar-menu a:hover:before {
-            width: 100%;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            border-left: 4px solid #ffd600;
-        }
-        
-        .sidebar-menu a i {
-            font-size: 1.2rem;
-            width: 24px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-menu a span {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .sidebar-footer {
-            padding: 18px 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.95rem;
-            color: #bfc9d9;
-            background: rgba(255,255,255,0.03);
-        }
-        
         .main-content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
+            margin-left: 0;
+        }
+        
+        .sidebar.collapsed + .main-content {
+            margin-left: 70px;
         }
         
         .top-bar {
@@ -216,10 +117,11 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
         
         .user-info {
@@ -230,7 +132,7 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
         }
         
@@ -242,18 +144,26 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .company-name {
             font-size: 1rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.85);
         }
-        
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
         .verification-badge {
             display: inline-flex;
             align-items: center;
-            background-color: #e8f5e9;
+            background-color: rgba(232, 245, 233, 0.9);
             color: #388e3c;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             margin-left: 15px;
+            backdrop-filter: blur(4px);
         }
         
         .verification-badge .icon {
@@ -261,7 +171,7 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .pending-verification {
-            background-color: #fff8e1;
+            background-color: rgba(255, 248, 225, 0.9);
             color: #f57c00;
         }
         
@@ -486,24 +396,11 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
     <div class="employer-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Employer</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/dashboard.php" class="active"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/profile.php"><i>👤</i> Company Profile</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php"><i>📝</i> Post a Job</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php"><i>💼</i> Manage Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php"><i>📋</i> Applications</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'employer-sidebar.php'; ?>
         
         <div class="main-content">
             <div class="top-bar">
-                <h1>Employer Dashboard</h1>
+                <h1>Dashboard</h1>
                 <div class="user-info">
                     <div class="user-name">
                         <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
@@ -607,5 +504,33 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar Toggle
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            
+            // Check localStorage for sidebar state
+            if(localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+
+            // Add confirmation for logout
+            const logoutLink = document.querySelector('a[href*="logout.php"]');
+            if(logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if(!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

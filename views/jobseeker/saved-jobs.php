@@ -243,10 +243,11 @@ if(!empty($saved_jobs)) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
         
         .user-info {
@@ -257,7 +258,7 @@ if(!empty($saved_jobs)) {
         
         .user-name {
             font-size: 1.1rem;
-            color: #333;
+            color: #ffffff;
             font-weight: 500;
         }
         
@@ -269,7 +270,14 @@ if(!empty($saved_jobs)) {
         
         .company-name {
             font-size: 1rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
         
         .saved-count {
@@ -790,7 +798,7 @@ if(!empty($saved_jobs)) {
                 <div class="sidebar-logo">
                     <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
                 </div>
-                <h3>ShaSha Jobseeker</h3>
+                <h3>ShaSha</h3>
             </div>
             
             <ul class="sidebar-menu">
