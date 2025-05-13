@@ -214,55 +214,118 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 30px;
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 12px;
             padding: 20px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            transition: transform 0.3s, box-shadow 0.3s;
             display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
+            aspect-ratio: 3/2;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(21, 87, 176, 0.3);
+            text-decoration: none;
         }
         
         .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
+            font-size: 24px;
+            width: 45px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
-            font-size: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            margin-bottom: 10px;
         }
         
-        .jobs-icon {
-            background-color: #e3f2fd;
-            color: #1976d2;
+        .stat-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
         }
         
-        .applications-icon {
-            background-color: #e8f5e9;
-            color: #388e3c;
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 4px 0;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .recent-icon {
-            background-color: #fff8e1;
-            color: #f57c00;
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: center;
         }
         
-        .stat-info h4 {
-            margin: 0 0 5px;
-            font-size: 1rem;
-            color: #666;
+        .stat-button {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            white-space: nowrap;
+            backdrop-filter: blur(5px);
+            margin-top: auto;
         }
         
-        .stat-info h3 {
-            margin: 0;
-            font-size: 1.5rem;
+        .stat-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        /* Card color variations */
+        .stat-card.jobs {
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+        }
+        
+        .stat-card.applications {
+            background: linear-gradient(135deg, #2c5282 0%, #2b6cb0 100%);
+        }
+        
+        .stat-card.recent {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
         }
         
         .action-buttons {
@@ -439,9 +502,6 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             <div class="top-bar">
                 <h1>Dashboard</h1>
                 <div class="user-info">
-                    <div class="user-name">
-                        <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
-                    </div>
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
                         <?php if($is_verified): ?>
@@ -467,29 +527,32 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
             <?php endif; ?>
             
             <div class="stats-cards">
-                <div class="stat-card">
-                    <div class="stat-icon jobs-icon">💼</div>
+                <a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php?status=active" class="stat-card jobs">
+                    <div class="stat-icon">💼</div>
                     <div class="stat-info">
-                        <h4>Active Job Postings</h4>
-                        <h3><?php echo $active_jobs_count; ?></h3>
+                        <div class="stat-number"><?php echo $active_jobs_count; ?></div>
+                        <div class="stat-label">Active Job Postings</div>
                     </div>
-                </div>
+                    <div class="stat-button">VIEW JOBS</div>
+                </a>
                 
-                <div class="stat-card">
-                    <div class="stat-icon applications-icon">📋</div>
+                <a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="stat-card applications">
+                    <div class="stat-icon">📋</div>
                     <div class="stat-info">
-                        <h4>Total Applications</h4>
-                        <h3><?php echo $applications_count; ?></h3>
+                        <div class="stat-number"><?php echo $applications_count; ?></div>
+                        <div class="stat-label">Total Applications</div>
                     </div>
-                </div>
+                    <div class="stat-button">VIEW APPLICATIONS</div>
+                </a>
                 
-                <div class="stat-card">
-                    <div class="stat-icon recent-icon">🔔</div>
+                <a href="<?php echo SITE_URL; ?>/views/employer/applications.php?days=7" class="stat-card recent">
+                    <div class="stat-icon">🔔</div>
                     <div class="stat-info">
-                        <h4>Recent Applications (7 days)</h4>
-                        <h3><?php echo $recent_applications_count; ?></h3>
+                        <div class="stat-number"><?php echo $recent_applications_count; ?></div>
+                        <div class="stat-label">Recent Applications (7 days)</div>
                     </div>
-                </div>
+                    <div class="stat-button">VIEW RECENT</div>
+                </a>
             </div>
             
             <div class="action-buttons">
@@ -558,12 +621,21 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
                 localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
             });
 
-            // Add confirmation for logout
+            // Add confirmation for logout - using localStorage to track confirmation
             const logoutLink = document.querySelector('a[href*="logout.php"]');
             if(logoutLink) {
                 logoutLink.addEventListener('click', function(e) {
-                    if(!confirm('Are you sure you want to logout?')) {
-                        e.preventDefault();
+                    const hasConfirmed = localStorage.getItem('logoutConfirmed');
+                    if(!hasConfirmed) {
+                        if(confirm('Are you sure you want to logout?')) {
+                            localStorage.setItem('logoutConfirmed', 'true');
+                            // Clear the confirmation after 1 minute
+                            setTimeout(() => {
+                                localStorage.removeItem('logoutConfirmed');
+                            }, 60000);
+                        } else {
+                            e.preventDefault();
+                        }
                     }
                 });
             }

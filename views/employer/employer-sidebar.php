@@ -149,7 +149,7 @@ function is_active($page) {
         <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="<?php echo is_active('manage-jobs.php'); ?>"><i>💼</i><span>Manage Jobs</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="<?php echo is_active('applications.php'); ?>"><i>📋</i><span>Applications</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/chat-assistant.php" class="<?php echo is_active('chat-assistant.php'); ?>"><i>💬</i><span>Chat Assistant</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php" onclick="return confirm('Are you sure you want to logout?') || event.preventDefault();"><i>🚪</i><span>Logout</span></a></li>
     </ul>
 </div>
 
@@ -169,15 +169,5 @@ document.addEventListener('DOMContentLoaded', function() {
         // Save state to localStorage
         localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
     });
-
-    // Add confirmation for logout
-    const logoutLink = document.querySelector('a[href*="logout.php"]');
-    if(logoutLink) {
-        logoutLink.addEventListener('click', function(e) {
-            if(!confirm('Are you sure you want to logout?')) {
-                e.preventDefault();
-            }
-        });
-    }
 });
 </script> 

@@ -437,9 +437,6 @@ $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
             <div class="top-bar">
                 <h1>Post a Job</h1>
                 <div class="user-info">
-                    <div class="user-name">
-                        <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
-                    </div>
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
                         <?php if($is_verified): ?>

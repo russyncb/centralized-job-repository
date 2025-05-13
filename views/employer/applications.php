@@ -674,9 +674,6 @@ if(!empty($job_id_filter)) {
             <div class="top-bar">
                 <h1>Applications</h1>
                 <div class="user-info">
-                    <div class="user-name">
-                        <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?>
-                    </div>
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
                         <?php if($is_verified): ?>
