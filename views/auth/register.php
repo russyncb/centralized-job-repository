@@ -80,17 +80,17 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             $email = $password = $confirm_password = $first_name = $last_name = $phone = $company_name = "";
             $role = "jobseeker";
             
-            // If jobseeker, automatically login
-            if($userData['role'] == 'jobseeker') {
-                $login_result = $auth->login($email, $password);
-                if($login_result['success']) {
-                    header("Location: " . SITE_URL . "/views/jobseeker/dashboard.php");
-                    exit;
-                }
+            if($userData['role'] == 'employer') {
+                // For employers, show verification message
+                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system.";
             } else {
-                // For employers, show success message with verification info
-                $success .= " Your account needs to be verified by an admin before you can access the system.";
+                // For jobseekers
+                $message = "Registration successful! Please login to continue.";
             }
+            
+            // Redirect to login page with appropriate message
+            redirect(SITE_URL . '/views/auth/login.php', $message, 'success');
+            exit;
         } else {
             $error = $result['message'];
         }

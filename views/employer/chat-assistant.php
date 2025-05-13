@@ -54,6 +54,74 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_query'])) {
     }
 }
 
+// Handle chat message submission
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chat_message'])) {
+    $message = trim($_POST['message']);
+    if(!empty($message)) {
+        // Store the message
+        $query = "INSERT INTO chat_messages (user_id, message, is_assistant, created_at) 
+                 VALUES (?, ?, 0, NOW())";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(1, $_SESSION['user_id']);
+        $stmt->bindParam(2, $message);
+        $stmt->execute();
+        
+        // Generate assistant response based on keywords
+        $response = generateAssistantResponse($message);
+        
+        // Store assistant response
+        $query = "INSERT INTO chat_messages (user_id, message, is_assistant, created_at) 
+                 VALUES (?, ?, 1, NOW())";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(1, $_SESSION['user_id']);
+        $stmt->bindParam(2, $response);
+        $stmt->execute();
+        
+        // Return JSON response for AJAX
+        if(isset($_POST['ajax'])) {
+            echo json_encode(['success' => true, 'response' => $response]);
+            exit;
+        }
+    }
+}
+
+// Get chat history
+$query = "SELECT message, is_assistant, created_at 
+          FROM chat_messages 
+          WHERE user_id = ? 
+          ORDER BY created_at ASC";
+$stmt = $db->prepare($query);
+$stmt->bindParam(1, $_SESSION['user_id']);
+$stmt->execute();
+$chat_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Function to generate basic responses based on keywords
+function generateAssistantResponse($message) {
+    $message = strtolower($message);
+    
+    if(strpos($message, 'post job') !== false || strpos($message, 'create job') !== false) {
+        return "To post a new job, click on 'Post a Job' in the sidebar menu. You'll need to fill in details like job title, description, requirements, and other relevant information.";
+    }
+    
+    if(strpos($message, 'application') !== false || strpos($message, 'applicant') !== false) {
+        return "You can view and manage all job applications in the 'Applications' section. There you can review candidates, update application status, and contact applicants.";
+    }
+    
+    if(strpos($message, 'category') !== false) {
+        return "To request a new job category, please use the 'Submit Query to Admin' form on the right and select 'Add New Job Category' as the query type.";
+    }
+    
+    if(strpos($message, 'profile') !== false || strpos($message, 'company') !== false) {
+        return "You can update your company profile by clicking on 'Company Profile' in the sidebar. Make sure to keep your information up to date!";
+    }
+    
+    if(strpos($message, 'verify') !== false || strpos($message, 'verification') !== false) {
+        return "Company verification is handled by our admin team. If your company is not verified yet, please submit a verification request using the 'Account Support' query type.";
+    }
+    
+    return "I understand your message. For specific assistance, you can submit a query to our admin team using the form on the right. They'll be happy to help!";
+}
+
 // Get previous queries
 $query = "SELECT query_type, query_text, status, response, created_at, responded_at 
           FROM admin_queries 
@@ -330,11 +398,28 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     
                     <div class="chat-messages" id="chatMessages">
-                        <div class="message assistant-message">
-                            <div class="message-content">
-                                Hello! I'm your ShaSha assistant. How can I help you today? You can ask me questions about job posting, managing applications, or submit queries to the admin.
+                        <?php if(empty($chat_history)): ?>
+                            <div class="message assistant-message">
+                                <div class="message-content">
+                                    Hello! I'm your ShaSha assistant. How can I help you today? You can ask me questions about:
+                                    <ul>
+                                        <li>Posting and managing jobs</li>
+                                        <li>Handling applications</li>
+                                        <li>Company verification</li>
+                                        <li>Profile management</li>
+                                        <li>Or submit queries to admin</li>
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <?php foreach($chat_history as $chat): ?>
+                                <div class="message <?php echo $chat['is_assistant'] ? 'assistant' : 'user'; ?>-message">
+                                    <div class="message-content">
+                                        <?php echo htmlspecialchars($chat['message']); ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="chat-input">
@@ -408,17 +493,30 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const message = input.value.trim();
             
             if(message) {
-                // Add user message
+                // Add user message to UI
                 addMessage(message, 'user');
                 
                 // Clear input
                 input.value = '';
                 
-                // Simulate assistant response (you'll need to implement actual chatbot logic)
-                setTimeout(() => {
-                    const response = "I understand you're asking about '" + message + "'. This is a placeholder response. The actual chatbot integration needs to be implemented.";
-                    addMessage(response, 'assistant');
-                }, 1000);
+                // Send message to server
+                fetch('<?php echo $_SERVER['PHP_SELF']; ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'chat_message=1&message=' + encodeURIComponent(message) + '&ajax=1'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        addMessage(data.response, 'assistant');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage('Sorry, there was an error processing your message. Please try again.', 'assistant');
+                });
             }
         }
         

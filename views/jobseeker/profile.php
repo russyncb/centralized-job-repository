@@ -25,23 +25,54 @@ $stmt->execute();
 $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(!$jobseeker) {
-    redirect(SITE_URL . '/views/auth/logout.php', 'Jobseeker profile not found.', 'error');
-    exit;
+    // If no profile exists, create one
+    $query = "INSERT INTO jobseeker_profiles (user_id) VALUES (?)";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(1, $_SESSION['user_id']);
+    $stmt->execute();
+    
+    // Fetch user data
+    $query = "SELECT user_id, first_name, last_name, email, phone FROM users WHERE user_id = ?";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(1, $_SESSION['user_id']);
+    $stmt->execute();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Initialize jobseeker array with user data
+    $jobseeker = array(
+        'user_id' => $user['user_id'],
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'email' => $user['email'],
+        'phone' => $user['phone'],
+        'headline' => '',
+        'education_level' => '',
+        'experience_years' => '',
+        'skills' => '',
+        'address' => '',
+        'resume' => ''
+    );
 }
 
-$jobseeker_id = $jobseeker['jobseeker_id'];
+// Ensure all required keys exist
+$required_keys = ['first_name', 'last_name', 'email', 'phone', 'headline', 'education_level', 'experience_years', 'skills', 'address', 'resume'];
+foreach($required_keys as $key) {
+    if(!isset($jobseeker[$key])) {
+        $jobseeker[$key] = '';
+    }
+}
 
-// Process form submission
-if($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get form data
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $phone = trim($_POST['phone']);
-    $headline = trim($_POST['headline']);
-    $education_level = trim($_POST['education_level']);
-    $experience_years = trim($_POST['experience_years']);
-    $skills = trim($_POST['skills']);
-    $address = trim($_POST['address']);
+// Process other profile updates
+if($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_FILES['resume'])) {
+    // Get form data with proper checks
+    $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
+    $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
+    $headline = isset($_POST['headline']) ? trim($_POST['headline']) : '';
+    $education_level = isset($_POST['education_level']) ? trim($_POST['education_level']) : '';
+    $experience_years = isset($_POST['experience_years']) ? trim($_POST['experience_years']) : '';
+    $skills = isset($_POST['skills']) ? trim($_POST['skills']) : '';
+    $address = isset($_POST['address']) ? trim($_POST['address']) : '';
     
     // Basic validation
     if(empty($first_name) || empty($last_name)) {
@@ -69,15 +100,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             if($stmt->execute()) {
                 $success = "Profile updated successfully.";
                 
-                // Refresh jobseeker data
-                $query = "SELECT jp.*, u.first_name, u.last_name, u.email, u.phone
-                          FROM jobseeker_profiles jp
-                          JOIN users u ON jp.user_id = u.user_id
-                          WHERE jp.user_id = ?";
-                $stmt = $db->prepare($query);
-                $stmt->bindParam(1, $_SESSION['user_id']);
-                $stmt->execute();
-                $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
+                // Update local jobseeker array
+                $jobseeker['first_name'] = $first_name;
+                $jobseeker['last_name'] = $last_name;
+                $jobseeker['phone'] = $phone;
+                $jobseeker['headline'] = $headline;
+                $jobseeker['education_level'] = $education_level;
+                $jobseeker['experience_years'] = $experience_years;
+                $jobseeker['skills'] = $skills;
+                $jobseeker['address'] = $address;
             } else {
                 $error = "Error updating jobseeker profile.";
             }
@@ -87,7 +118,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Process resume upload
+// Process resume upload independently
 if(isset($_FILES['resume']) && $_FILES['resume']['error'] === 0) {
     $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     $max_size = 5 * 1024 * 1024; // 5MB
@@ -104,7 +135,7 @@ if(isset($_FILES['resume']) && $_FILES['resume']['error'] === 0) {
         }
         
         // Generate unique filename
-        $filename = $jobseeker_id . '_' . time() . '_' . $_FILES['resume']['name'];
+        $filename = $jobseeker['user_id'] . '_' . time() . '_' . $_FILES['resume']['name'];
         $target_file = $upload_dir . $filename;
         
         if(move_uploaded_file($_FILES['resume']['tmp_name'], $target_file)) {
@@ -118,17 +149,7 @@ if(isset($_FILES['resume']) && $_FILES['resume']['error'] === 0) {
             
             if($stmt->execute()) {
                 $success = "Resume uploaded successfully.";
-                
-                // Refresh jobseeker data
-                // Refresh jobseeker data
-                $query = "SELECT jp.*, u.first_name, u.last_name, u.email, u.phone
-                          FROM jobseeker_profiles jp
-                          JOIN users u ON jp.user_id = u.user_id
-                          WHERE jp.user_id = ?";
-                $stmt = $db->prepare($query);
-                $stmt->bindParam(1, $_SESSION['user_id']);
-                $stmt->execute();
-                $jobseeker = $stmt->fetch(PDO::FETCH_ASSOC);
+                $jobseeker['resume'] = $resume_path;
             } else {
                 $error = "Error updating resume in database.";
             }
