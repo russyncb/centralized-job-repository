@@ -14,6 +14,15 @@ if(!has_role('employer')) {
 $database = new Database();
 $db = $database->getConnection();
 
+// Get application ID
+if(!isset($_GET['id'])) {
+    redirect(SITE_URL . '/views/employer/applications.php', 'No application specified.', 'error');
+}
+
+$application_id = $_GET['id'];
+$job_filter = isset($_GET['job_id']) ? $_GET['job_id'] : '';
+$status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+
 // Get employer ID
 $query = "SELECT e.employer_id, e.verified, e.company_name, u.first_name, u.last_name 
           FROM employer_profiles e
@@ -29,13 +38,6 @@ if(!$employer) {
 }
 
 $employer_id = $employer['employer_id'];
-
-// Get application ID
-if(!isset($_GET['id'])) {
-    redirect(SITE_URL . '/views/employer/applications.php', 'No application specified.', 'error');
-}
-
-$application_id = $_GET['id'];
 
 // Get application details
 $query = "SELECT a.*, j.title as job_title, j.location as job_location, j.job_type,
@@ -70,6 +72,55 @@ $grouped_documents = [];
 foreach($documents as $doc) {
     $grouped_documents[$doc['document_type']][] = $doc;
 }
+
+// Get next and previous application IDs based on filters
+$base_query = "SELECT a.application_id 
+              FROM applications a
+              JOIN jobs j ON a.job_id = j.job_id
+              WHERE j.employer_id = ? ";
+
+// Apply job filter if specified
+if (!empty($job_filter)) {
+    $base_query .= " AND j.job_id = ? ";
+}
+
+// Apply status filter if specified
+if (!empty($status_filter)) {
+    $base_query .= " AND a.status = ? ";
+}
+
+$base_query .= " ORDER BY a.applied_at DESC";
+
+// Query for next and previous applications
+$param_index = 1;
+$nav_stmt = $db->prepare($base_query);
+$nav_stmt->bindParam($param_index++, $employer_id);
+
+if (!empty($job_filter)) {
+    $nav_stmt->bindParam($param_index++, $job_filter);
+}
+
+if (!empty($status_filter)) {
+    $nav_stmt->bindParam($param_index++, $status_filter);
+}
+
+$nav_stmt->execute();
+$all_applications = $nav_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Find current position and get next/previous IDs
+$current_position = array_search($application_id, $all_applications);
+$prev_application_id = ($current_position > 0) ? $all_applications[$current_position - 1] : null;
+$next_application_id = ($current_position < count($all_applications) - 1) ? $all_applications[$current_position + 1] : null;
+
+// Build navigation URLs with filters
+$navigation_params = [];
+if (!empty($job_filter)) {
+    $navigation_params[] = 'job_id=' . urlencode($job_filter);
+}
+if (!empty($status_filter)) {
+    $navigation_params[] = 'status=' . urlencode($status_filter);
+}
+$nav_query_string = !empty($navigation_params) ? '&' . implode('&', $navigation_params) : '';
 
 // Process application actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -466,32 +517,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         .category-title {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: #1a3b5d;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
         }
         
         .category-icon {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 6px;
         }
         
         .document-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         
         .document-link {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: 15px;
+            padding: 15px;
             background: #f8fafc;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #e5e7eb;
             transition: all 0.3s ease;
             text-decoration: none;
@@ -499,20 +559,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         .document-link:hover {
             background: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
             border-color: #1557b0;
+            text-decoration: none;
         }
         
         .document-icon {
-            font-size: 1.5rem;
-            width: 40px;
-            height: 40px;
+            font-size: 1.8rem;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: white;
-            border-radius: 8px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            color: #1a3b5d;
+            transition: all 0.3s ease;
+        }
+        
+        .document-link:hover .document-icon {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            color: #1557b0;
         }
         
         .document-info {
@@ -589,6 +659,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             white-space: pre-line;
             line-height: 1.6;
         }
+        
+        /* Navigation styles */
+        .navigation-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 12px;
+            padding: 18px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        .nav-position {
+            color: #64748b;
+            font-weight: 500;
+            background: #f8fafc;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
+            transition: 0.5s;
+        }
+        
+        .nav-btn:hover::after {
+            left: 100%;
+        }
+        
+        .nav-back {
+            color: #64748b;
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+        
+        .nav-back:hover {
+            background: #e2e8f0;
+            color: #1a3b5d;
+            text-decoration: none;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .nav-prev, .nav-next {
+            color: white;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
+            font-weight: 600;
+        }
+        
+        .nav-prev:hover, .nav-next:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(21, 87, 176, 0.25);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .nav-disabled {
+            color: #94a3b8;
+            background: #f1f5f9;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .shortcut-info {
+            font-size: 0.9rem;
+            color: #64748b;
+            padding: 8px 15px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            position: absolute;
+            right: 25px;
+            bottom: -18px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .navigation-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-buttons {
+                width: 100%;
+            }
+            
+            .nav-btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -611,6 +801,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             </span>
                         <?php endif; ?>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Application Navigation -->
+            <div class="navigation-bar">
+                <a href="<?php echo SITE_URL; ?>/views/employer/applications.php<?php echo !empty($job_filter) ? '?job_id=' . $job_filter : ''; ?><?php echo !empty($status_filter) ? (!empty($job_filter) ? '&' : '?') . 'status=' . $status_filter : ''; ?>" class="nav-btn nav-back">
+                    <span class="icon">←</span> Back to List
+                </a>
+                
+                <div class="nav-position">
+                    Application <?php echo $current_position + 1; ?> of <?php echo count($all_applications); ?>
+                </div>
+                
+                <div class="nav-buttons">
+                    <?php if($prev_application_id): ?>
+                        <a href="<?php echo SITE_URL; ?>/views/employer/view-application.php?id=<?php echo $prev_application_id . $nav_query_string; ?>" class="nav-btn nav-prev">
+                            <span class="icon">←</span> Previous
+                        </a>
+                    <?php else: ?>
+                        <span class="nav-btn nav-disabled">
+                            <span class="icon">←</span> Previous
+                        </span>
+                    <?php endif; ?>
+                    
+                    <?php if($next_application_id): ?>
+                        <a href="<?php echo SITE_URL; ?>/views/employer/view-application.php?id=<?php echo $next_application_id . $nav_query_string; ?>" class="nav-btn nav-next">
+                            Next <span class="icon">→</span>
+                        </a>
+                    <?php else: ?>
+                        <span class="nav-btn nav-disabled">
+                            Next <span class="icon">→</span>
+                        </span>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -687,19 +910,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <?php foreach(explode(', ', $application['skills']) as $skill): ?>
                                     <span class="skill-tag"><?php echo htmlspecialchars($skill); ?></span>
                                 <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php 
-                    // Only show the text-based cover letter if there are no uploaded cover letter documents
-                    $hasCoverLetterDocuments = !empty($grouped_documents['cover_letter']);
-                    if(!empty($application['cover_letter']) && !$hasCoverLetterDocuments): 
-                    ?>
-                        <div class="section">
-                            <h3 class="section-title">Cover Letter</h3>
-                            <div class="cover-letter">
-                                <?php echo nl2br(htmlspecialchars($application['cover_letter'])); ?>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -904,6 +1114,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 });
             });
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            // Don't trigger when typing in form fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // Navigate with arrow keys
+            if (e.key === 'ArrowRight') {
+                const nextBtn = document.querySelector('.nav-next:not(.nav-disabled)');
+                if (nextBtn) nextBtn.click();
+            } else if (e.key === 'ArrowLeft') {
+                const prevBtn = document.querySelector('.nav-prev:not(.nav-disabled)');
+                if (prevBtn) prevBtn.click();
+            } 
+            // Download all documents with 'D' key
+            else if (e.key === 'd' || e.key === 'D') {
+                const docLinks = document.querySelectorAll('.document-link');
+                if (docLinks.length > 0) {
+                    docLinks.forEach(link => {
+                        // Create a temporary anchor to trigger download
+                        const tempLink = document.createElement('a');
+                        tempLink.href = link.href;
+                        tempLink.setAttribute('download', '');
+                        tempLink.setAttribute('target', '_blank');
+                        tempLink.click();
+                    });
+                }
+            }
+        });
+        
+        // Add keyboard shortcut info tooltip
+        const navBar = document.querySelector('.navigation-bar');
+        if (navBar) {
+            const shortcutInfo = document.createElement('div');
+            shortcutInfo.className = 'shortcut-info';
+            shortcutInfo.innerHTML = 'Keyboard shortcuts: ← prev | → next | D download all';
+            navBar.appendChild(shortcutInfo);
         }
     });
 </script>

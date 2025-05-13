@@ -682,7 +682,7 @@ if(!empty($job_id_filter)) {
                 <form method="get" action="" class="filter-form">
                     <div class="form-group">
                         <label for="job_id">Filter by Job</label>
-                        <select id="job_id" name="job_id">
+                        <select id="job_id" name="job_id" onchange="this.form.submit()">
                             <option value="">All Jobs</option>
                             <?php foreach($employer_jobs as $job): ?>
                                 <option value="<?php echo $job['job_id']; ?>" <?php if($job_id_filter == $job['job_id']) echo 'selected'; ?>>
@@ -697,7 +697,7 @@ if(!empty($job_id_filter)) {
                         <input type="text" id="search" name="search" placeholder="Name or email" value="<?php echo htmlspecialchars($search); ?>">
                     </div>
                     
-                    <button type="submit" class="btn-filter">Apply Filters</button>
+                    <button type="submit" class="btn-filter">Search</button>
                     <a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="btn-reset">Reset</a>
                 </form>
             </div>
@@ -770,7 +770,10 @@ if(!empty($job_id_filter)) {
                                     </td>
                                     <td>
                                         <div class="actions">
-                                            <a href="<?php echo SITE_URL; ?>/views/employer/view-application.php?id=<?php echo $application['application_id']; ?>" class="btn-action btn-view">View</a>
+                                            <a href="<?php echo SITE_URL; ?>/views/employer/view-application.php?id=<?php echo $application['application_id']; 
+                                            echo !empty($job_id_filter) ? '&job_id=' . $job_id_filter : '';
+                                            echo !empty($status_filter) ? '&status=' . $status_filter : '';
+                                            ?>" class="btn-action btn-view">View</a>
                                             
                                             <?php if($application['status'] != 'shortlisted' && $application['status'] != 'hired'): ?>
                                                 <form method="post" style="display:inline;">
