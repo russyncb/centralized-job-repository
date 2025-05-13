@@ -463,29 +463,9 @@ $total_jobs = array_sum($status_totals);
 </head>
 <body>
     <div class="admin-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Admin</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php"><i>✓</i> Verify Employers</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php"><i>👥</i> Users</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php" class="active"><i>💼</i> Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/settings.php"><i>⚙️</i> Settings</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'admin-sidebar.php'; ?>
         
-        <div class="main-content">
-            <div class="top-bar">
-                <h1>Manage Jobs</h1>
-                <div class="user-info">
-                    <span>Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
-                </div>
-            </div>
-            
+        <div class="admin-content">
             <?php if(isset($_SESSION['message'])): ?>
                 <div class="message <?php echo $_SESSION['message_type']; ?>">
                     <?php 
@@ -623,5 +603,52 @@ $total_jobs = array_sum($status_totals);
             </div>
         </div>
     </div>
+
+    <script>
+        // Auto-filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if auto-search is enabled in settings
+            <?php
+            // Check settings for auto-search
+            $database = new Database();
+            $db = $database->getConnection();
+            
+            $query = "SELECT setting_value FROM settings WHERE setting_name = 'enable_auto_search'";
+            $stmt = $db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $auto_search_enabled = !empty($result) && $result['setting_value'] == '1';
+            ?>
+            
+            const autoSearchEnabled = <?php echo $auto_search_enabled ? 'true' : 'false'; ?>;
+            
+            if (autoSearchEnabled) {
+                // Get form elements
+                const filterForm = document.querySelector('.filter-form');
+                const categorySelect = document.getElementById('category');
+                const statusSelect = document.getElementById('status');
+                const searchInput = document.getElementById('search');
+                
+                // Add change event listeners to select elements
+                categorySelect.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+                
+                statusSelect.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+                
+                // For search input, submit after a short delay when typing stops
+                let typingTimer;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(function() {
+                        filterForm.submit();
+                    }, 500); // 500ms delay after typing stops
+                });
+            }
+        });
+    </script>
 </body>
 </html>      

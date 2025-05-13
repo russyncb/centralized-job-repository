@@ -151,11 +151,18 @@ $total_users = array_sum($role_totals);
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
         }
         
         .admin-container {
             display: flex;
             min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
         }
         
         .sidebar {
@@ -209,8 +216,14 @@ $total_users = array_sum($role_totals);
         
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 20px 30px 30px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
         }
         
         .top-bar {
@@ -220,6 +233,7 @@ $total_users = array_sum($role_totals);
             margin-bottom: 30px;
             padding-bottom: 10px;
             border-bottom: 1px solid #dee2e6;
+            width: 100%;
         }
         
         .user-info {
@@ -228,24 +242,46 @@ $total_users = array_sum($role_totals);
         }
         
         .stats-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 15px;
             flex: 1;
             text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
         
         .stat-number {
             font-size: 1.8rem;
             font-weight: 600;
             margin: 5px 0;
+            color: #333;
         }
         
         .stat-label {
@@ -255,16 +291,19 @@ $total_users = array_sum($role_totals);
         
         .filters {
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 20px;
             margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .filter-form {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
+            width: 100%;
         }
         
         .filter-group {
@@ -309,9 +348,10 @@ $total_users = array_sum($role_totals);
         .users-table {
             width: 100%;
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
+            box-sizing: border-box;
         }
         
         table {
@@ -422,7 +462,9 @@ $total_users = array_sum($role_totals);
         .message {
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .success {
@@ -438,29 +480,9 @@ $total_users = array_sum($role_totals);
 </head>
 <body>
     <div class="admin-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Admin</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php"><i>✓</i> Verify Employers</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php" class="active"><i>👥</i> Users</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php"><i>💼</i> Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/settings.php"><i>⚙️</i> Settings</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'admin-sidebar.php'; ?>
         
-        <div class="main-content">
-            <div class="top-bar">
-                <h1>Manage Users</h1>
-                <div class="user-info">
-                    <span>Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
-                </div>
-            </div>
-            
+        <div class="admin-content">
             <?php if(isset($_SESSION['message'])): ?>
                 <div class="message <?php echo $_SESSION['message_type']; ?>">
                     <?php 
@@ -592,5 +614,52 @@ $total_users = array_sum($role_totals);
             </div>
         </div>
     </div>
+
+    <script>
+        // Auto-filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if auto-search is enabled in settings
+            <?php
+            // Check settings for auto-search
+            $database = new Database();
+            $db = $database->getConnection();
+            
+            $query = "SELECT setting_value FROM settings WHERE setting_name = 'enable_auto_search'";
+            $stmt = $db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $auto_search_enabled = !empty($result) && $result['setting_value'] == '1';
+            ?>
+            
+            const autoSearchEnabled = <?php echo $auto_search_enabled ? 'true' : 'false'; ?>;
+            
+            if (autoSearchEnabled) {
+                // Get form elements
+                const filterForm = document.querySelector('.filter-form');
+                const roleSelect = document.getElementById('role');
+                const statusSelect = document.getElementById('status');
+                const searchInput = document.getElementById('search');
+                
+                // Add change event listeners to select elements
+                roleSelect.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+                
+                statusSelect.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+                
+                // For search input, submit after a short delay when typing stops
+                let typingTimer;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(function() {
+                        filterForm.submit();
+                    }, 500); // 500ms delay after typing stops
+                });
+            }
+        });
+    </script>
 </body>
 </html>

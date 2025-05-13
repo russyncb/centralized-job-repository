@@ -56,11 +56,18 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
         }
         
         .admin-container {
             display: flex;
             min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
         }
         
         .sidebar {
@@ -114,8 +121,14 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
         
         .main-content {
             flex: 1;
-            padding: 20px;
+            padding: 20px 30px 30px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
         }
         
         .top-bar {
@@ -125,6 +138,7 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
             margin-bottom: 30px;
             padding-bottom: 10px;
             border-bottom: 1px solid #dee2e6;
+            width: 100%;
         }
         
         .user-info {
@@ -140,115 +154,305 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
             margin-right: 10px;
         }
         
+        /* Modern Stats Cards */
         .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 25px;
             display: flex;
             align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+            height: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, #4a89dc, #5c9dff);
+        }
+        
+        .users-card::before {
+            background: linear-gradient(to bottom, #4a89dc, #5c9dff);
+        }
+        
+        .employers-card::before {
+            background: linear-gradient(to bottom, #5cb85c, #7ad57a);
+        }
+        
+        .jobseekers-card::before {
+            background: linear-gradient(to bottom, #f0ad4e, #ffbd67);
+        }
+        
+        .jobs-card::before {
+            background: linear-gradient(to bottom, #9b59b6, #b07cc6);
         }
         
         .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
-            font-size: 24px;
+            margin-right: 20px;
+            font-size: 28px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background-size: 200% auto;
+            color: white;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
         }
         
         .users-icon {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #4a89dc 0%, #5c9dff 100%);
         }
         
         .employers-icon {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #5cb85c 0%, #7ad57a 100%);
         }
         
         .jobseekers-icon {
-            background-color: #fff8e1;
-            color: #f57c00;
+            background: linear-gradient(135deg, #f0ad4e 0%, #ffbd67 100%);
         }
         
         .jobs-icon {
-            background-color: #f3e5f5;
-            color: #7b1fa2;
+            background: linear-gradient(135deg, #9b59b6 0%, #b07cc6 100%);
+        }
+        
+        .stat-card:hover .stat-icon {
+            background-position: right center;
+        }
+        
+        .stat-info {
+            flex: 1;
         }
         
         .stat-info h4 {
             margin: 0 0 5px;
             font-size: 1rem;
-            color: #666;
+            color: #616161;
+            font-weight: 500;
         }
         
         .stat-info h3 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .stat-growth {
+            font-size: 0.8rem;
+            color: #28a745;
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        
+        /* Quick Actions Section */
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .quick-actions h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        
+        .action-button {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #dee2e6 100%);
+            border-radius: 10px;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .action-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: #212529;
+        }
+        
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        
+        .verify-icon {
+            color: #5cb85c;
+        }
+        
+        .job-icon {
+            color: #007bff;
+        }
+        
+        .user-icon {
+            color: #fd7e14;
+        }
+        
+        .query-icon {
+            color: #6f42c1;
         }
         
         /* System Overview Styles */
         .system-overview {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
             margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
-        .system-overview h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .system-overview p {
-            color: #555;
+        .overview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+        }
+        
+        .overview-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
         }
         
         .overview-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        @media (max-width: 1000px) {
+            .overview-cards {
+                grid-template-columns: 1fr;
+            }
         }
         
         .overview-card {
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 25px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            height: 100%;
+        }
+        
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
         
         .overview-card-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .overview-card-header h3 {
             margin: 0;
             font-size: 1.3rem;
             color: #333;
+            font-weight: 600;
         }
         
         .overview-card-header i {
-            font-size: 1.5rem;
-            color: #0056b3;
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #dee2e6 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #007bff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        
+        .employers-icon-bg {
+            color: #28a745;
+        }
+        
+        .jobs-icon-bg {
+            color: #9b59b6;
         }
         
         .overview-card-subheader {
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             font-size: 0.95rem;
         }
         
@@ -259,65 +463,164 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
         }
         
         .overview-number {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: bold;
             color: #333;
+            position: relative;
+        }
+        
+        .overview-number-container {
+            position: relative;
+        }
+        
+        .progress-circle {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #28a745;
         }
         
         .status-badge {
-            padding: 6px 12px;
+            padding: 8px 15px;
             border-radius: 20px;
             font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .status-green {
             background-color: #e8f5e9;
-            color: #388e3c;
+            color: #2e7d32;
         }
         
         .status-blue {
             background-color: #e3f2fd;
-            color: #1976d2;
+            color: #1565c0;
         }
         
         .system-alert {
-            background-color: #fff8e1;
-            border-left: 4px solid #f57c00;
-            border-radius: 8px;
-            padding: 15px 20px;
+            background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+            border-left: 5px solid #ffa000;
+            border-radius: 12px;
+            padding: 20px 25px;
             display: flex;
             align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .alert-icon {
-            margin-right: 15px;
-            font-size: 1.5rem;
+            margin-right: 20px;
+            font-size: 2rem;
             color: #f57c00;
+            flex-shrink: 0;
         }
         
         .alert-text {
-            color: #555;
+            color: #5d4037;
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+        
+        /* Recent Activity Section */
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            flex: 1;
+            min-height: 250px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .recent-activity h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .activity-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .activity-item {
+            display: flex;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .activity-icon.user {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .activity-icon.job {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .activity-icon.query {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 3px;
+            color: #333;
+        }
+        
+        .activity-time {
+            font-size: 0.85rem;
+            color: #777;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Admin</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/dashboard.php" class="active"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php"><i>✓</i> Verify Employers <?php if($pending_employers_count > 0): ?><span class="badge"><?php echo $pending_employers_count; ?></span><?php endif; ?></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php"><i>👥</i> Users</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php"><i>💼</i> Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/settings.php"><i>⚙️</i> Settings</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'admin-sidebar.php'; ?>
         
-        <div class="main-content">
+        <div class="admin-content">
             <div class="top-bar">
                 <h1>Admin Dashboard</h1>
                 <div class="user-info">
@@ -326,55 +629,111 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
             </div>
             
             <div class="stats-cards">
-                <div class="stat-card">
+                <div class="stat-card users-card">
                     <div class="stat-icon users-icon">👥</div>
                     <div class="stat-info">
                         <h4>Total Users</h4>
                         <h3><?php echo $users_count; ?></h3>
+                        <div class="stat-growth">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+                                <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Active System
+                        </div>
                     </div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card employers-card">
                     <div class="stat-icon employers-icon">🏢</div>
                     <div class="stat-info">
                         <h4>Employers</h4>
                         <h3><?php echo $employers_count; ?></h3>
+                        <div class="stat-growth">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+                                <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Managing Jobs
+                        </div>
                     </div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card jobseekers-card">
                     <div class="stat-icon jobseekers-icon">👤</div>
                     <div class="stat-info">
                         <h4>Job Seekers</h4>
                         <h3><?php echo $jobseekers_count; ?></h3>
+                        <div class="stat-growth">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+                                <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Looking for Jobs
+                        </div>
                     </div>
                 </div>
                 
-                <div class="stat-card">
+                <div class="stat-card jobs-card">
                     <div class="stat-icon jobs-icon">💼</div>
                     <div class="stat-info">
                         <h4>Active Jobs</h4>
                         <h3><?php echo $active_jobs_count; ?></h3>
+                        <div class="stat-growth">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 5px;">
+                                <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Available Positions
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- System Overview Section (New) -->
+            <!-- Quick Actions Section (New) -->
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="action-button">
+                        <div class="action-icon verify-icon">✓</div>
+                        <span>Verify Employers</span>
+                    </a>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php" class="action-button">
+                        <div class="action-icon job-icon">💼</div>
+                        <span>Manage Jobs</span>
+                    </a>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php" class="action-button">
+                        <div class="action-icon user-icon">👥</div>
+                        <span>Manage Users</span>
+                    </a>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/queries.php" class="action-button">
+                        <div class="action-icon query-icon">💬</div>
+                        <span>View Queries</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- System Overview Section (Enhanced) -->
             <div class="system-overview">
-                <h1>System Overview</h1>
+                <div class="overview-header">
+                    <h2>System Overview</h2>
+                </div>
                 <p>Welcome to the ShaSha CJRS admin panel. From here, you can manage the entire job repository system.</p>
                 
                 <div class="overview-cards">
                     <div class="overview-card">
                         <div class="overview-card-header">
-                            <i>🏢</i>
+                            <i class="employers-icon-bg">🏢</i>
                             <h3>Employer Verification</h3>
                         </div>
                         <div class="overview-card-subheader">
                             Employers awaiting verification
                         </div>
                         <div class="overview-card-content">
-                            <div class="overview-number"><?php echo $pending_employers_count; ?></div>
+                            <div class="overview-number-container">
+                                <div class="overview-number"><?php echo $pending_employers_count; ?></div>
+                                <?php if($pending_employers_count > 0): ?>
+                                <div class="progress-circle">
+                                    <?php echo $pending_employers_count; ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
                             <div class="status-badge status-green">
                                 <?php echo $pending_employers_count > 0 ? 'Action needed' : 'No action required'; ?>
                             </div>
@@ -383,7 +742,7 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                     
                     <div class="overview-card">
                         <div class="overview-card-header">
-                            <i>💼</i>
+                            <i class="jobs-icon-bg">💼</i>
                             <h3>Active Job Postings</h3>
                         </div>
                         <div class="overview-card-subheader">
@@ -404,6 +763,69 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
                     </div>
                 </div>
                 <?php endif; ?>
+            </div>
+            
+            <!-- Recent Activity Section (New) -->
+            <div class="recent-activity">
+                <h2>Recent Activity</h2>
+                <div class="activity-list">
+                    <?php
+                    // Get recent user registrations
+                    $recent_users_query = "SELECT u.user_id, u.first_name, u.last_name, u.role, u.created_at 
+                                        FROM users u 
+                                        ORDER BY u.created_at DESC 
+                                        LIMIT 3";
+                    $recent_users_stmt = $db->prepare($recent_users_query);
+                    $recent_users_stmt->execute();
+                    $recent_users = $recent_users_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Get recent job postings
+                    $recent_jobs_query = "SELECT j.title, j.posted_at, e.company_name 
+                                       FROM jobs j 
+                                       JOIN employer_profiles e ON j.employer_id = e.employer_id 
+                                       ORDER BY j.posted_at DESC 
+                                       LIMIT 3";
+                    $recent_jobs_stmt = $db->prepare($recent_jobs_query);
+                    $recent_jobs_stmt->execute();
+                    $recent_jobs = $recent_jobs_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Display recent users
+                    foreach($recent_users as $user): 
+                    ?>
+                    <div class="activity-item">
+                        <div class="activity-icon user">👤</div>
+                        <div class="activity-content">
+                            <div class="activity-title">
+                                New <?php echo ucfirst($user['role']); ?>: <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                            </div>
+                            <div class="activity-time"><?php echo date('M d, Y H:i', strtotime($user['created_at'])); ?></div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    
+                    <!-- Display recent jobs -->
+                    <?php foreach($recent_jobs as $job): ?>
+                    <div class="activity-item">
+                        <div class="activity-icon job">💼</div>
+                        <div class="activity-content">
+                            <div class="activity-title">
+                                New Job: <?php echo htmlspecialchars($job['title']); ?> at <?php echo htmlspecialchars($job['company_name']); ?>
+                            </div>
+                            <div class="activity-time"><?php echo date('M d, Y H:i', strtotime($job['posted_at'])); ?></div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    
+                    <?php if(count($recent_users) == 0 && count($recent_jobs) == 0): ?>
+                    <div class="activity-item">
+                        <div class="activity-icon">ℹ️</div>
+                        <div class="activity-content">
+                            <div class="activity-title">No recent activity</div>
+                            <div class="activity-time">System is waiting for new activity</div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>

@@ -86,9 +86,19 @@ $query = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.websit
          WHERE u.status = 'pending'
          ORDER BY u.created_at DESC";
 
-$stmt = $db->prepare($query);
-$stmt->execute();
-$pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Initialize pending_employers as an empty array
+$pending_employers = [];
+
+try {
+    $stmt = $db->prepare($query);
+    $stmt->execute();
+    $pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $_SESSION['message'] = "Database error: " . $e->getMessage();
+    $_SESSION['message_type'] = "error";
+    // Ensure $pending_employers is still an array even if the query fails
+    $pending_employers = [];
+}
 ?>
 
 <!DOCTYPE html>
@@ -103,80 +113,6 @@ $pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
-        }
-        
-        .admin-container {
-            display: flex;
-            min-height: 100vh;
-        }
-        
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
-        }
-        
-        .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        
-        .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
         }
         
         .employer-cards {
@@ -286,29 +222,9 @@ $pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
     <div class="admin-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3>ShaSha Admin</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/dashboard.php"><i>📊</i> Dashboard</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="active"><i>✓</i> Verify Employers <?php if(count($pending_employers) > 0): ?><span class="badge"><?php echo count($pending_employers); ?></span><?php endif; ?></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php"><i>👥</i> Users</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php"><i>💼</i> Jobs</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/admin/settings.php"><i>⚙️</i> Settings</a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i> Logout</a></li>
-            </ul>
-        </div>
+        <?php include 'admin-sidebar.php'; ?>
         
-        <div class="main-content">
-            <div class="top-bar">
-                <h1>Verify Employers</h1>
-                <div class="user-info">
-                    <span>Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
-                </div>
-            </div>
-            
+        <div class="admin-content">
             <?php if(isset($_SESSION['message'])): ?>
                 <div class="message <?php echo $_SESSION['message_type']; ?>">
                     <?php 
@@ -319,7 +235,7 @@ $pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             <?php endif; ?>
             
-            <?php if(count($pending_employers) > 0): ?>
+            <?php if(is_array($pending_employers) && count($pending_employers) > 0): ?>
                 <div class="employer-cards">
                     <?php foreach($pending_employers as $employer): ?>
                         <div class="employer-card">
