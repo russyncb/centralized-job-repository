@@ -665,6 +665,38 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Floating Chatbot */
+        .floating-chat {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .floating-chat-button {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1a5276 0%, #154360 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+
+        .floating-chat-button:hover {
+            transform: scale(1.1);
+        }
+
+        .floating-chat-button svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -892,9 +924,8 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
             </div>
         </div>
     </div>
-    <!-- Chatbot Container -->
-    <div class="chatbot-container">
-        <div class="chatbot-icon" id="chatbot-icon">
+    <div class="floating-chat">
+        <div class="floating-chat-button" id="floating-chat-button">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
@@ -968,6 +999,15 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                     e.preventDefault();
                 }
             });
+
+            // Floating chat button click handler
+            const floatingChatButton = document.getElementById('floating-chat-button');
+            if(floatingChatButton) {
+                floatingChatButton.addEventListener('click', function() {
+                    // Add your chat functionality here
+                    console.log('Chat button clicked');
+                });
+            }
         });
     </script>
 </body>

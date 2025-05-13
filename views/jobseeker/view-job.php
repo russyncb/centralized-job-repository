@@ -57,17 +57,30 @@ if(!$job) {
     redirect(SITE_URL . '/views/jobseeker/search-jobs.php', 'Job not found or no longer active.', 'error');
 }
 
-// Get similar jobs
-$query = "SELECT j.job_id, j.title, j.location, j.job_type, j.posted_at, e.company_name, e.company_logo
+// Get similar jobs with better prioritization
+$query = "SELECT j.job_id, j.title, j.location, j.job_type, j.posted_at, e.company_name, e.company_logo,
+         CASE 
+            WHEN j.category = ? THEN 2  -- Exact category match gets highest priority
+            WHEN j.category IN (
+                SELECT DISTINCT j2.category 
+                FROM applications a 
+                JOIN jobs j2 ON a.job_id = j2.job_id 
+                WHERE a.jobseeker_id = ?
+            ) THEN 1  -- Categories user has applied to before get second priority
+            ELSE 0    -- Other categories get lowest priority
+         END as match_score
          FROM jobs j
          JOIN employer_profiles e ON j.employer_id = e.employer_id
-         WHERE j.status = 'active' AND j.job_id != ? AND j.category = ?
-         ORDER BY j.posted_at DESC
-         LIMIT 3";
+         WHERE j.status = 'active' 
+         AND j.job_id != ?
+         AND (j.application_deadline IS NULL OR j.application_deadline >= CURDATE())
+         ORDER BY match_score DESC, j.posted_at DESC
+         LIMIT 6";
 
 $stmt = $db->prepare($query);
-$stmt->bindParam(1, $job_id);
-$stmt->bindParam(2, $job['category']);
+$stmt->bindParam(1, $job['category']);  // Current job's category
+$stmt->bindParam(2, $jobseeker_id);     // Jobseeker ID for history matching
+$stmt->bindParam(3, $job_id);           // Exclude current job
 $stmt->execute();
 
 $similar_jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -225,24 +238,57 @@ if(!empty($job['application_deadline'])) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
         }
-        
-        .back-link {
-            color: #666;
-            text-decoration: none;
-            display: inline-flex;
+
+        .top-bar-left {
+            display: flex;
             align-items: center;
+            gap: 20px;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .back-link:hover {
-            color: #333;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-3px);
+            color: white;
             text-decoration: none;
         }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
         
-        .back-icon {
-            margin-right: 5px;
+        .user-name {
+            font-size: 1.1rem;
+            color: #ffffff;
+            font-weight: 500;
+        }
+        
+        .professional-headline {
+            color: #FFD700;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .job-container {
@@ -264,59 +310,75 @@ if(!empty($job['application_deadline'])) {
         }
         
         .job-header {
-            padding: 25px;
-            border-bottom: 1px solid #eee;
+            background: linear-gradient(135deg, #1a5276 0%, #154360 100%);
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .job-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .company-headline {
+            color: #FFD700;
+            font-size: 1rem;
+            margin: 8px 0;
+            font-weight: 500;
+        }
+        
+        .company-info {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .company-logo {
             width: 80px;
             height: 80px;
-            background-color: #f8f9fa;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            backdrop-filter: blur(8px);
         }
         
         .company-logo img {
             max-width: 60px;
             max-height: 60px;
+            border-radius: 8px;
         }
         
-        .job-header-info {
-            flex: 1;
-        }
-        
-        .job-title {
-            font-size: 1.8rem;
-            margin: 0 0 5px;
-        }
-        
-        .company-name {
-            font-size: 1.1rem;
-            color: #666;
-            margin-bottom: 15px;
+        .company-details h2 {
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 5px;
         }
         
         .job-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-            color: #666;
+            gap: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
         }
         
         .meta-item {
             display: flex;
             align-items: center;
+            gap: 8px;
         }
         
-        .meta-icon {
-            margin-right: 5px;
+        .meta-item i {
+            font-size: 1.2rem;
         }
         
         .job-body {
@@ -339,105 +401,105 @@ if(!empty($job['application_deadline'])) {
         }
         
         .job-actions {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
         }
         
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
+        .btn-apply {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            text-decoration: none;
-            width: 100%;
-            text-align: center;
-            margin-bottom: 10px;
+            flex: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
-        .btn-primary {
-            background-color: #0056b3;
-            color: white;
+        .btn-apply:hover {
+            background: linear-gradient(135deg, #27ae60 0%, #219a52 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
         }
-        
-        .btn-primary:hover {
-            background-color: #004494;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid #0056b3;
-            color: #0056b3;
-        }
-        
-        .btn-outline:hover {
-            background-color: #f0f5ff;
-            text-decoration: none;
-        }
-        
-        .btn-applied {
-            background-color: #e8f5e9;
-            color: #388e3c;
-            cursor: default;
-        }
-        
+
         .btn-saved {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #27ae60 0%, #219a52 100%);
+            color: white;
+            border: none;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
-        .btn-disabled {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            cursor: not-allowed;
+        .btn-save:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #2471a3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
         }
         
         .job-info {
-            background-color: white;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            padding: 25px;
             margin-bottom: 20px;
+            border: 1px solid #eef2f7;
         }
         
         .info-section {
             margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eef2f7;
         }
         
         .info-section:last-child {
             margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
         
         .info-label {
-            font-weight: 500;
-            margin-bottom: 5px;
-            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a5276;
+            font-size: 0.95rem;
         }
         
         .info-value {
-            color: #333;
+            color: #2c3e50;
+            font-size: 1.05rem;
         }
         
         .company-section {
-            background-color: white;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            padding: 25px;
             margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
         }
         
         .company-section-title {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            color: #333;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #1a5276;
+            color: #1a5276;
+            font-weight: 600;
         }
         
         .company-info {
@@ -445,60 +507,238 @@ if(!empty($job['application_deadline'])) {
         }
         
         .similar-jobs {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 25px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            margin-top: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .similar-jobs::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
         }
         
         .similar-jobs-title {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            color: #333;
+            font-size: 1.4rem;
+            color: #1e293b;
+            margin-bottom: 25px;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .recommended-jobs-container {
+            position: relative;
+            min-height: 200px;
         }
         
         .similar-job-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
         }
         
-        .similar-job-item:last-child {
-            border-bottom: none;
+        .similar-job-item.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
         }
         
-        .similar-job-title {
-            font-weight: 500;
-            margin-bottom: 5px;
+        .similar-job-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-color: #cbd5e1;
+        }
+        
+        .similar-job-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .company-logo-small {
+            width: 48px;
+            height: 48px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .company-logo-small img {
+            max-width: 36px;
+            max-height: 36px;
+            object-fit: contain;
+        }
+        
+        .company-logo-small span {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+        
+        .similar-job-info {
+            flex: 1;
         }
         
         .similar-job-title a {
-            color: #0056b3;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 1.1rem;
             text-decoration: none;
+            transition: color 0.2s ease;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         
         .similar-job-title a:hover {
-            text-decoration: underline;
+            color: #3b82f6;
         }
         
         .similar-job-company {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-top: 4px;
         }
         
         .similar-job-meta {
-            color: #666;
-            font-size: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 12px 0;
         }
         
-        .deadline-alert {
-            background-color: #fbe9e7;
-            color: #d32f2f;
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .meta-item i {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+        
+        .similar-job-actions {
+            margin-top: 15px;
+        }
+        
+        .btn-view {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-view:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .job-navigation {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .nav-dots {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-dot:hover {
+            background: #94a3b8;
+            transform: scale(1.2);
+        }
+        
+        .nav-dot.active {
+            background: #3b82f6;
+            transform: scale(1.2);
+        }
+        
+        .match-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+        
+        .perfect-match {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .similar-match {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #3b82f6;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .match-icon {
+            font-size: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .job-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -525,9 +765,19 @@ if(!empty($job['application_deadline'])) {
         
         <div class="main-content">
             <div class="top-bar">
-                <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="back-link">
-                    <span class="back-icon">←</span> Back to Jobs
-                </a>
+                <div class="top-bar-left">
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="back-link">
+                        <span>←</span> Back to Jobs
+                    </a>
+                </div>
+                <div class="user-info">
+                    <div class="user-name">
+                        <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?>
+                    </div>
+                    <?php if(!empty($jobseeker['headline'])): ?>
+                        <div class="professional-headline"><?php echo htmlspecialchars($jobseeker['headline']); ?></div>
+                    <?php endif; ?>
+                </div>
             </div>
             
             <div class="job-container">
@@ -544,6 +794,9 @@ if(!empty($job['application_deadline'])) {
                             <div class="job-header-info">
                                 <h1 class="job-title"><?php echo htmlspecialchars($job['title']); ?></h1>
                                 <div class="company-name"><?php echo htmlspecialchars($job['company_name']); ?></div>
+                                <?php if(!empty($job['headline'])): ?>
+                                    <div class="company-headline"><?php echo htmlspecialchars($job['headline']); ?></div>
+                                <?php endif; ?>
                                 <div class="job-meta">
                                     <div class="meta-item">
                                         <span class="meta-icon">📍</span>
@@ -626,17 +879,23 @@ if(!empty($job['application_deadline'])) {
                 <div class="job-sidebar">
                     <div class="job-actions">
                         <?php if($job['has_applied'] > 0): ?>
-                            <span class="btn btn-applied">Applied</span>
+                            <span class="btn btn-applied">✓ Already Applied</span>
                         <?php elseif($deadline_passed): ?>
                             <span class="btn btn-disabled">Application Closed</span>
                         <?php else: ?>
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/apply-job.php?id=<?php echo $job_id; ?>" class="btn btn-primary">Apply Now</a>
+                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/apply-job.php?id=<?php echo $job_id; ?>" class="btn btn-apply">
+                                <span>📝</span> Apply Now
+                            </a>
                         <?php endif; ?>
                         
                         <?php if($job['is_saved'] > 0): ?>
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/save-job.php?id=<?php echo $job_id; ?>&action=remove&redirect=view" class="btn btn-saved">Saved</a>
+                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/save-job.php?id=<?php echo $job_id; ?>&action=remove&redirect=view" class="btn btn-saved">
+                                <span>✓</span> Saved
+                            </a>
                         <?php else: ?>
-                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/save-job.php?id=<?php echo $job_id; ?>&action=save&redirect=view" class="btn btn-outline">Save Job</a>
+                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/save-job.php?id=<?php echo $job_id; ?>&action=save&redirect=view" class="btn btn-save">
+                                <span>💾</span> Save Job
+                            </a>
                         <?php endif; ?>
                     </div>
                     
@@ -703,20 +962,45 @@ if(!empty($job['application_deadline'])) {
                     
                     <?php if(count($similar_jobs) > 0): ?>
                         <div class="similar-jobs">
-                            <h3 class="similar-jobs-title">Similar Jobs</h3>
-                            <?php foreach($similar_jobs as $similar_job): ?>
-                                <div class="similar-job-item">
-                                    <div class="similar-job-title">
-                                        <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $similar_job['job_id']; ?>">
-                                            <?php echo htmlspecialchars($similar_job['title']); ?>
-                                        </a>
+                            <h3 class="similar-jobs-title">Recommended Jobs</h3>
+                            <div class="recommended-jobs-container" id="recommendedJobsContainer">
+                                <?php foreach($similar_jobs as $index => $similar_job): ?>
+                                    <div class="similar-job-item <?php echo $index === 0 ? 'active' : ''; ?>" data-job-index="<?php echo $index; ?>" data-match-score="<?php echo $similar_job['match_score']; ?>">
+                                        <div class="similar-job-header">
+                                            <div class="company-logo-small">
+                                                <?php if(!empty($similar_job['company_logo'])): ?>
+                                                    <img src="<?php echo SITE_URL . '/' . $similar_job['company_logo']; ?>" alt="Company Logo">
+                                                <?php else: ?>
+                                                    <span><?php echo strtoupper(substr($similar_job['company_name'], 0, 1)); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="similar-job-info">
+                                                <div class="similar-job-title">
+                                                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $similar_job['job_id']; ?>">
+                                                        <?php echo htmlspecialchars($similar_job['title']); ?>
+                                                    </a>
+                                                </div>
+                                                <div class="similar-job-company"><?php echo htmlspecialchars($similar_job['company_name']); ?></div>
+                                            </div>
+                                        </div>
+                                        <div class="similar-job-meta">
+                                            <span class="meta-item"><i>📍</i> <?php echo htmlspecialchars($similar_job['location']); ?></span>
+                                            <span class="meta-item"><i>💼</i> <?php echo ucfirst($similar_job['job_type']); ?></span>
+                                            <span class="meta-item"><i>📅</i> <?php echo date('M d', strtotime($similar_job['posted_at'])); ?></span>
+                                        </div>
+                                        <div class="similar-job-actions">
+                                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $similar_job['job_id']; ?>" class="btn btn-view">View Job</a>
+                                        </div>
                                     </div>
-                                    <div class="similar-job-company"><?php echo htmlspecialchars($similar_job['company_name']); ?></div>
-                                    <div class="similar-job-meta">
-                                        <?php echo htmlspecialchars($similar_job['location']); ?> • <?php echo ucfirst($similar_job['job_type']); ?>
-                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="job-navigation">
+                                <div class="nav-dots">
+                                    <?php for($i = 0; $i < count($similar_jobs); $i++): ?>
+                                        <span class="nav-dot <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></span>
+                                    <?php endfor; ?>
                                 </div>
-                            <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -749,6 +1033,91 @@ if(!empty($job['application_deadline'])) {
                     }
                 });
             }
+
+            // Recommended Jobs Rotation with longer interval
+            const jobItems = document.querySelectorAll('.similar-job-item');
+            const navDots = document.querySelectorAll('.nav-dot');
+            let currentIndex = 0;
+            const rotationInterval = 60000; // 1 minute in milliseconds
+
+            function showJob(index) {
+                // Add fade out effect to current job
+                if (jobItems[currentIndex]) {
+                    jobItems[currentIndex].style.opacity = '0';
+                    jobItems[currentIndex].style.transform = 'translateX(20px)';
+                }
+
+                setTimeout(() => {
+                    jobItems.forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    navDots.forEach(dot => dot.classList.remove('active'));
+
+                    jobItems[index].classList.add('active');
+                    navDots[index].classList.add('active');
+
+                    // Trigger reflow to ensure animation plays
+                    jobItems[index].offsetHeight;
+
+                    // Add fade in effect to new job
+                    jobItems[index].style.opacity = '1';
+                    jobItems[index].style.transform = 'translateX(0)';
+                }, 300); // Wait for fade out to complete
+            }
+
+            function rotateJobs() {
+                currentIndex = (currentIndex + 1) % jobItems.length;
+                showJob(currentIndex);
+            }
+
+            // Initialize first job with fade in
+            if (jobItems.length > 0) {
+                jobItems[0].style.opacity = '1';
+                jobItems[0].style.transform = 'translateX(0)';
+            }
+
+            // Initialize rotation
+            let rotationTimer = setInterval(rotateJobs, rotationInterval);
+
+            // Add click handlers for navigation dots
+            navDots.forEach((dot, index) => {
+                dot.addEventListener('click', () => {
+                    clearInterval(rotationTimer);
+                    currentIndex = index;
+                    showJob(currentIndex);
+                    rotationTimer = setInterval(rotateJobs, rotationInterval);
+                });
+            });
+
+            // Pause rotation on hover
+            const container = document.getElementById('recommendedJobsContainer');
+            container.addEventListener('mouseenter', () => clearInterval(rotationTimer));
+            container.addEventListener('mouseleave', () => {
+                rotationTimer = setInterval(rotateJobs, rotationInterval);
+            });
+
+            // Add visual indicator for match score
+            const jobCards = document.querySelectorAll('.similar-job-item');
+            jobCards.forEach(card => {
+                const matchScore = parseInt(card.dataset.matchScore);
+                let matchLabel = '';
+                let matchClass = '';
+                
+                if (matchScore === 2) {
+                    matchLabel = 'Perfect Category Match';
+                    matchClass = 'perfect-match';
+                } else if (matchScore === 1) {
+                    matchLabel = 'Similar Category';
+                    matchClass = 'similar-match';
+                }
+                
+                if (matchLabel) {
+                    const matchDiv = document.createElement('div');
+                    matchDiv.className = `match-indicator ${matchClass}`;
+                    matchDiv.innerHTML = `<span class="match-icon">✨</span> ${matchLabel}`;
+                    card.querySelector('.similar-job-header').appendChild(matchDiv);
+                }
+            });
         });
     </script>
 </body>

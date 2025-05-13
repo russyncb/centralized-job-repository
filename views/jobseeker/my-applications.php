@@ -316,10 +316,17 @@ foreach($status_counts as $count) {
             color: white;
         }
         
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
         .user-info {
             display: flex;
-            align-items: center;
-            gap: 20px;
+            flex-direction: column;
+            gap: 5px;
         }
         
         .user-name {
@@ -328,85 +335,79 @@ foreach($status_counts as $count) {
             font-weight: 500;
         }
         
-        .company-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .company-name {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.85);
+        .professional-headline {
+            color: #FFD700;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
-        .top-bar h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            color: #ffffff;
-            font-weight: 600;
-        }
-        
         .stats-cards {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 15px;
-            flex: 1;
-            min-width: 150px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 20px;
             text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
         
         .stat-number {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a5276;
+            margin-bottom: 8px;
         }
         
         .stat-label {
-            color: #666;
-            font-size: 0.9rem;
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
         
         .status-tabs {
             display: flex;
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+            padding-bottom: 5px;
         }
         
         .status-tab {
             padding: 10px 20px;
-            cursor: pointer;
-            color: #555;
+            border-radius: 8px;
+            color: #475569;
+            text-decoration: none;
             font-weight: 500;
-            position: relative;
+            font-size: 0.95rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .status-tab:hover {
+            background: #f8fafc;
+            color: #1e293b;
             text-decoration: none;
         }
         
         .status-tab.active {
-            color: #0056b3;
-        }
-        
-        .status-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #0056b3;
-        }
-        
-        .status-tab:hover {
-            text-decoration: none;
-            color: #0056b3;
+            background: #1a5276;
+            color: white;
+            border-color: #1a5276;
         }
         
         .application-list {
@@ -414,27 +415,28 @@ foreach($status_counts as $count) {
         }
         
         .application-item {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 25px;
             margin-bottom: 20px;
             display: flex;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            align-items: center;
+            gap: 25px;
+            border: 1px solid #eef2f7;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         
         .application-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
         .company-logo {
             width: 70px;
             height: 70px;
-            background-color: #f8f9fa;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-right: 20px;
+            background: #f8f9fa;
+            border: 1px solid #eef2f7;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -443,15 +445,9 @@ foreach($status_counts as $count) {
         }
         
         .company-logo img {
-            max-width: 60px;
-            max-height: 60px;
-            object-fit: contain;
-        }
-        
-        .company-logo span {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #0056b3;
+            max-width: 50px;
+            max-height: 50px;
+            border-radius: 8px;
         }
         
         .application-details {
@@ -459,234 +455,193 @@ foreach($status_counts as $count) {
         }
         
         .application-header {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         .job-title {
             font-size: 1.2rem;
             font-weight: 600;
             margin-bottom: 5px;
-            display: flex;
-            align-items: center;
         }
         
         .job-title a {
-            color: #0056b3;
+            color: #1a5276;
             text-decoration: none;
+            transition: color 0.2s ease;
         }
         
         .job-title a:hover {
-            text-decoration: underline;
+            color: #2980b9;
+        }
+        
+        .company-name {
+            color: #64748b;
+            font-size: 0.95rem;
         }
         
         .application-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
-            margin-bottom: 15px;
-            color: #666;
+            margin-bottom: 12px;
+            color: #64748b;
             font-size: 0.9rem;
         }
         
         .application-meta span {
             display: flex;
             align-items: center;
-        }
-        
-        .application-meta span i {
-            margin-right: 5px;
-            opacity: 0.7;
+            gap: 5px;
         }
         
         .application-feedback {
-            background-color: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            border-left: 3px solid #0056b3;
+            background: #f8fafc;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 12px;
+            color: #475569;
+            font-size: 0.95rem;
+            border: 1px solid #e2e8f0;
         }
         
         .application-status {
             margin-left: auto;
-            align-self: flex-start;
+            padding-left: 20px;
+            border-left: 1px solid #eef2f7;
         }
         
         .status-badge {
-            display: inline-block;
-            padding: 5px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.9rem;
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
         
         .status-pending {
-            background-color: #e0f7fa;
-            color: #0097a7;
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
         }
         
         .status-shortlisted {
-            background-color: #e8f5e9;
-            color: #388e3c;
-        }
-        
-        .status-rejected {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
         }
         
         .status-hired {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .status-rejected {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
         }
         
         .status-withdrawn {
-            background-color: #f5f5f5;
-            color: #757575;
+            background: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
         }
         
         .application-actions {
             margin-top: 15px;
-            display: flex;
-            gap: 10px;
         }
         
-        .btn {
-            display: inline-block;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .withdraw-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
             font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .btn-primary {
-            background-color: #0056b3;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #004494;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid #0056b3;
-            color: #0056b3;
-        }
-        
-        .btn-outline:hover {
-            background-color: #f0f5ff;
-            text-decoration: none;
-        }
-        
-        .btn-danger {
-            background-color: transparent;
-            border: 1px solid #dc3545;
-            color: #dc3545;
-        }
-        
-        .btn-danger:hover {
-            background-color: #dc3545;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-        }
-        
-        .pagination a, .pagination span {
-            display: inline-block;
-            padding: 8px 12px;
-            margin: 0 5px;
-            border-radius: 4px;
-            color: #0056b3;
-            text-decoration: none;
-        }
-        
-        .pagination a {
-            background-color: white;
-            border: 1px solid #dee2e6;
-        }
-        
-        .pagination a:hover {
-            background-color: #f0f5ff;
-        }
-        
-        .pagination span {
-            background-color: #0056b3;
-            color: white;
-            border: 1px solid #0056b3;
+        .withdraw-btn:hover {
+            background-color: #fee2e2;
+            border-color: #fecaca;
         }
         
         .no-applications {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 40px;
             text-align: center;
-            padding: 50px 20px;
-            background-color: white;
-            border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
         }
         
         .no-applications h3 {
-            margin-bottom: 10px;
+            color: #1e293b;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .no-applications p {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        
+        .no-applications .btn-primary {
+            background: linear-gradient(135deg, #1a5276 0%, #154360 100%);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .no-applications .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 82, 118, 0.2);
         }
         
         .message {
-            padding: 15px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #166534;
+            padding: 15px 20px;
+            border-radius: 8px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .job-closed {
-            background-color: #f8f9fa;
-            color: #666;
-            font-size: 0.85rem;
-            padding: 2px 8px;
-            border-radius: 4px;
-            margin-left: 10px;
+        .message.error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #991b1b;
+            border-color: #fecaca;
         }
         
         @media (max-width: 768px) {
-            .jobseeker-container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
             }
             
             .application-item {
                 flex-direction: column;
-            }
-            
-            .company-logo {
-                margin-bottom: 15px;
+                align-items: flex-start;
             }
             
             .application-status {
                 margin-left: 0;
                 margin-top: 15px;
-            }
-            
-            .status-tabs {
-                overflow-x: auto;
+                padding-left: 0;
+                border-left: none;
+                border-top: 1px solid #eef2f7;
+                padding-top: 15px;
+                width: 100%;
             }
         }
         

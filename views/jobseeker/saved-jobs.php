@@ -72,15 +72,29 @@ $total_saved_jobs = $count_stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_pages = ceil($total_saved_jobs / $jobs_per_page);
 
 // Get saved jobs with job and employer details
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 $query = "SELECT j.*, e.company_name, e.company_logo, sj.saved_at
           FROM saved_jobs sj
           JOIN jobs j ON sj.job_id = j.job_id
           JOIN employer_profiles e ON j.employer_id = e.employer_id
-          WHERE sj.jobseeker_id = ?
-          ORDER BY sj.saved_at DESC
-          LIMIT $offset, $jobs_per_page";
+          WHERE sj.jobseeker_id = ?";
+
+$params = [$jobseeker_id];
+
+if (!empty($search_query)) {
+    $query .= " AND (j.title LIKE ? OR j.location LIKE ? OR e.company_name LIKE ? OR j.description LIKE ?)";
+    $search_param = '%' . $search_query . '%';
+    $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param]);
+}
+
+$query .= " ORDER BY sj.saved_at DESC LIMIT $offset, $jobs_per_page";
 $stmt = $db->prepare($query);
-$stmt->bindParam(1, $jobseeker_id);
+
+foreach($params as $key => $value) {
+    $stmt->bindValue($key + 1, $value);
+}
+
 $stmt->execute();
 $saved_jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -789,6 +803,60 @@ if(!empty($saved_jobs)) {
             background: #f5f5f5;
             color: #333;
         }
+        
+        .search-container {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+            outline: none;
+        }
+        
+        .search-button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(21, 87, 176, 0.2);
+        }
+        
+        .search-stats {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -835,6 +903,27 @@ if(!empty($saved_jobs)) {
                     ?>
                 </div>
             <?php endif; ?>
+            
+            <div class="search-container">
+                <form class="search-form" method="GET" action="">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        class="search-input" 
+                        placeholder="Search saved jobs by title, company, or location..."
+                        value="<?php echo htmlspecialchars($search_query); ?>"
+                    >
+                    <button type="submit" class="search-button">
+                        <span>🔍</span> Search
+                    </button>
+                </form>
+                <?php if(!empty($search_query)): ?>
+                    <div class="search-stats">
+                        Showing results for "<?php echo htmlspecialchars($search_query); ?>"
+                        <a href="?" class="clear-search">(Clear search)</a>
+                    </div>
+                <?php endif; ?>
+            </div>
             
             <div class="job-list">
                 <?php if(count($saved_jobs) > 0): ?>
