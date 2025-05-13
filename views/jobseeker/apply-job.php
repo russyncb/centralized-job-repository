@@ -519,6 +519,131 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-submit:hover::after {
             left: 100%;
         }
+
+        /* Document Section Styles */
+        .document-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            color: #1a3b5d;
+            margin-bottom: 15px;
+        }
+
+        .section-title .required {
+            color: #ef4444;
+        }
+
+        .document-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .document-item:hover {
+            border-color: #1557b0;
+            background: #f8fafc;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-title {
+            font-weight: 500;
+            color: #1a3b5d;
+            margin-bottom: 4px;
+        }
+
+        .document-meta {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .upload-new {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #e5e7eb;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #1a3b5d;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input[type="text"]:focus {
+            border-color: #1557b0;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+        }
+
+        .form-group input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            background: #f8fafc;
+            border: 1px dashed #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .help-text {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        /* Radio and Checkbox Styles */
+        input[type="radio"],
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            margin-top: 20px;
+            width: 100%;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -596,7 +721,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Fields marked with <span>*</span> are required
                     </div>
                     
-                    <form method="post" action="" enctype="multipart/form-data">
+                    <form method="post" action="<?php echo $_SERVER['PHP_SELF'] . '?id=' . $job_id; ?>" enctype="multipart/form-data">
                         <!-- CV Section -->
                         <div class="document-section">
                             <h4 class="section-title">
