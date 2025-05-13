@@ -146,6 +146,19 @@ CREATE TABLE password_resets (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+-- Admin queries table
+CREATE TABLE admin_queries (
+    query_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    query_type VARCHAR(50) NOT NULL,
+    query_text TEXT NOT NULL,
+    status ENUM('pending', 'in_progress', 'resolved', 'rejected') NOT NULL DEFAULT 'pending',
+    response TEXT DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    responded_at DATETIME DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 -- Create default admin user
 INSERT INTO users (email, password, role, first_name, last_name, status) 
 VALUES ('admin@shasha.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'Admin', 'User', 'active');
