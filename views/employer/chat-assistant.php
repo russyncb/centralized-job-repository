@@ -141,12 +141,12 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
     <style>
-        /* Chat Assistant Styles */
+        /* Modern Chat Assistant Styles */
         .chat-container {
             display: flex;
-            gap: 20px;
+            gap: 24px;
             margin: 20px 0;
-            height: calc(100vh - 200px); /* Adjust height to fit within main content */
+            height: calc(100vh - 180px);
             min-height: 500px;
         }
         
@@ -155,51 +155,72 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             display: flex;
             flex-direction: column;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
         .chat-sidebar {
-            width: 300px;
+            width: 320px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             overflow: hidden;
             height: fit-content;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
         .chat-header {
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 1px solid #eee;
+            background: linear-gradient(135deg, #f6f8fc 0%, #f1f4f9 100%);
         }
         
         .chat-header h3 {
             margin: 0;
             font-size: 1.2rem;
-            color: #333;
+            color: #1a3b5d;
+            font-weight: 600;
         }
         
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 24px;
             background: #fff;
             min-height: 300px;
         }
         
         .message {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: messageAppear 0.3s ease forwards;
+        }
+
+        @keyframes messageAppear {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .message-content {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 12px;
+            max-width: 75%;
+            padding: 16px 20px;
+            border-radius: 16px;
             font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .message-content:hover {
+            transform: translateY(-2px);
         }
         
         .user-message {
@@ -207,67 +228,107 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .user-message .message-content {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
         }
         
         .assistant-message .message-content {
-            background: #f5f5f5;
-            color: #333;
+            background: linear-gradient(135deg, #f6f8fc 0%, #f1f4f9 100%);
+            color: #1a3b5d;
+            border-bottom-left-radius: 4px;
+        }
+
+        .assistant-message .message-content ul {
+            margin: 10px 0 5px;
+            padding-left: 20px;
+        }
+
+        .assistant-message .message-content li {
+            margin: 5px 0;
+            color: #2c5282;
         }
         
         .chat-input {
             padding: 20px;
             border-top: 1px solid #eee;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             background: #fff;
+            position: relative;
         }
         
         .chat-input input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             font-size: 0.95rem;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #0056b3;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.1);
         }
         
         .chat-input button {
-            padding: 12px 20px;
-            background: #0056b3;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            font-weight: 500;
+            min-width: 100px;
         }
         
         .chat-input button:hover {
-            background: #004494;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,86,179,0.2);
+        }
+
+        .chat-input button:active {
+            transform: translateY(0);
         }
         
         .query-form {
-            padding: 20px;
+            padding: 24px;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
-            color: #444;
+            font-weight: 600;
+            color: #1a3b5d;
+            font-size: 0.9rem;
         }
         
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             font-size: 0.95rem;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0056b3;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.1);
         }
         
         .form-group textarea {
@@ -277,50 +338,70 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         .btn-submit {
             width: 100%;
-            padding: 12px;
-            background: #0056b3;
+            padding: 14px;
+            background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 0.95rem;
-            transition: background 0.2s;
+            font-weight: 500;
+            transition: all 0.2s;
         }
         
         .btn-submit:hover {
-            background: #004494;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,86,179,0.2);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
         }
         
         .previous-queries {
             margin-top: 20px;
+            padding: 0 24px 24px;
         }
         
         .query-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            padding: 16px;
+            border-radius: 12px;
+            background: #f8fafc;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .query-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         
         .query-item:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
         
         .query-type {
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 5px;
+            font-weight: 600;
+            color: #1a3b5d;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
         }
         
         .query-text {
             font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 8px;
+            color: #4a5568;
+            margin-bottom: 12px;
+            line-height: 1.5;
         }
         
         .query-status {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.85rem;
+            font-weight: 500;
         }
         
         .status-pending {
@@ -334,40 +415,79 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .query-response {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 6px;
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
             font-size: 0.9rem;
-            color: #333;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            line-height: 1.5;
         }
         
         .query-meta {
             font-size: 0.85rem;
-            color: #888;
-            margin-top: 5px;
+            color: #718096;
+            margin-top: 8px;
         }
-        
+
+        /* Custom scrollbar */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f4f9;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Message alert styles */
         .message-alert {
-            padding: 15px;
+            padding: 16px;
             margin-bottom: 20px;
-            border-radius: 6px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: alertAppear 0.3s ease;
+        }
+
+        @keyframes alertAppear {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .alert-success {
             background: #e8f5e9;
             color: #388e3c;
+            border: 1px solid #c8e6c9;
         }
         
         .alert-error {
             background: #fbe9e7;
             color: #d32f2f;
+            border: 1px solid #ffccbc;
         }
 
         /* Main content layout fixes */
         .employer-container {
             display: flex;
             min-height: 100vh;
+            background: #f8fafc;
         }
 
         .main-content {
@@ -377,6 +497,75 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             overflow-y: auto;
             width: calc(100% - 250px);
             transition: all 0.3s ease;
+        }
+
+        /* Top bar styles to match dashboard */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: white;
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .company-name {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .verification-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(232, 245, 233, 0.9);
+            color: #388e3c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 15px;
+            backdrop-filter: blur(4px);
+        }
+
+        .verification-badge .icon {
+            margin-right: 5px;
+        }
+
+        .pending-verification {
+            background-color: rgba(255, 248, 225, 0.9);
+            color: #f57c00;
+        }
+
+        /* Chat container adjustment */
+        .chat-container {
+            margin-top: 0; /* Remove top margin since header has margin-bottom */
         }
     </style>
 </head>
