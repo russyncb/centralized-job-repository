@@ -523,6 +523,15 @@ $company_sizes = [
                     </div>
                     <div class="company-info">
                         <span class="company-name"><?php echo htmlspecialchars($employer['company_name']); ?></span>
+                        <?php if($employer['verified']): ?>
+                            <span class="verification-badge">
+                                <span class="icon">✓</span> Verified
+                            </span>
+                        <?php else: ?>
+                            <span class="verification-badge pending-verification">
+                                <span class="icon">⏱</span> Pending Verification
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

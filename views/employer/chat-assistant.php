@@ -145,11 +145,15 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .chat-container {
             display: flex;
             gap: 20px;
-            margin-top: 20px;
+            margin: 20px 0;
+            height: calc(100vh - 200px); /* Adjust height to fit within main content */
+            min-height: 500px;
         }
         
         .chat-main {
             flex: 1;
+            display: flex;
+            flex-direction: column;
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -162,6 +166,7 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             overflow: hidden;
+            height: fit-content;
         }
         
         .chat-header {
@@ -177,9 +182,11 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .chat-messages {
-            padding: 20px;
-            height: 400px;
+            flex: 1;
             overflow-y: auto;
+            padding: 20px;
+            background: #fff;
+            min-height: 300px;
         }
         
         .message {
@@ -214,6 +221,7 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-top: 1px solid #eee;
             display: flex;
             gap: 10px;
+            background: #fff;
         }
         
         .chat-input input {
@@ -355,6 +363,21 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: #fbe9e7;
             color: #d32f2f;
         }
+
+        /* Main content layout fixes */
+        .employer-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            background: #f8fafc;
+            overflow-y: auto;
+            width: calc(100% - 250px);
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -376,7 +399,7 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </span>
                         <?php else: ?>
                             <span class="verification-badge pending-verification">
-                                <span class="icon">⌛</span> Pending Verification
+                                <span class="icon">⏱</span> Pending Verification
                             </span>
                         <?php endif; ?>
                     </div>
