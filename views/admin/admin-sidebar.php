@@ -114,6 +114,15 @@ $pending_queries = get_pending_queries_count();
     </ul>
 </div>
 
+<div class="header-bar">
+    <div class="header-title">
+        <h1><?php echo isset($page_title) ? $page_title : 'Admin Panel'; ?></h1>
+    </div>
+    <div class="user-info">
+        Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?>
+    </div>
+</div>
+
 <style>
     /* Admin Sidebar Styles */
     .sidebar {
@@ -278,6 +287,38 @@ $pending_queries = get_pending_queries_count();
         display: none;
     }
     
+    /* Header Bar Styles */
+    .header-bar {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        padding: 0 30px;
+        height: 85px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0;
+        left: 270px;
+        right: 0;
+        z-index: 900;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar.collapsed ~ .header-bar {
+        left: 80px;
+    }
+    
+    .header-title h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #1a3b5d;
+    }
+    
+    .user-info {
+        color: #64748b;
+        font-weight: 500;
+    }
+    
     /* Main Content Adjustment */
     .admin-content {
         margin-left: 270px;
@@ -309,6 +350,10 @@ $pending_queries = get_pending_queries_count();
             margin-left: 80px;
         }
         
+        .header-bar {
+            left: 80px;
+        }
+        
         .sidebar.expanded {
             width: 270px;
         }
@@ -321,9 +366,9 @@ $pending_queries = get_pending_queries_count();
             display: block;
         }
         
+        .sidebar.expanded ~ .header-bar,
         .sidebar.expanded ~ .admin-content {
             left: 270px;
-            margin-left: 0;
         }
     }
 </style>

@@ -174,6 +174,7 @@ $total_users = array_sum($role_totals);
             min-height: 100vh;
             width: 100%;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
         
         .admin-container {
@@ -181,82 +182,22 @@ $total_users = array_sum($role_totals);
             min-height: 100vh;
             width: 100%;
             max-width: 100%;
-        }
-        
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
-        }
-        
-        .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        
-        .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 20px 30px 30px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
             box-sizing: border-box;
-            width: 100%;
+        }
+        
+        .admin-content {
+            flex: 1;
+            padding: 105px 30px 30px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            width: calc(100% - 270px);
             max-width: 100%;
+            box-sizing: border-box;
         }
         
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
-            width: 100%;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
+        .sidebar.collapsed ~ .admin-content {
+            width: calc(100% - 80px);
         }
         
         .stats-row {
@@ -265,6 +206,7 @@ $total_users = array_sum($role_totals);
             gap: 15px;
             margin-bottom: 20px;
             width: 100%;
+            box-sizing: border-box;
         }
         
         @media (max-width: 1200px) {
@@ -277,6 +219,10 @@ $total_users = array_sum($role_totals);
             .stats-row {
                 grid-template-columns: 1fr;
             }
+            
+            .admin-content {
+                width: calc(100% - 80px);
+            }
         }
         
         .stat-card {
@@ -284,10 +230,11 @@ $total_users = array_sum($role_totals);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 15px;
-            flex: 1;
             text-align: center;
             border: 1px solid rgba(0,0,0,0.05);
             transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .stat-card:hover {
@@ -322,6 +269,7 @@ $total_users = array_sum($role_totals);
             gap: 15px;
             flex-wrap: wrap;
             width: 100%;
+            box-sizing: border-box;
         }
         
         .filter-group {
@@ -341,6 +289,7 @@ $total_users = array_sum($role_totals);
             padding: 8px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            box-sizing: border-box;
         }
         
         .btn-filter {

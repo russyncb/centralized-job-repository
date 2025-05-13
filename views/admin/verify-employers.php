@@ -113,18 +113,58 @@ try {
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+        
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .admin-content {
+            flex: 1;
+            padding: 105px 30px 30px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            width: calc(100% - 270px);
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .sidebar.collapsed ~ .admin-content {
+            width: calc(100% - 80px);
+        }
+        
+        @media (max-width: 768px) {
+            .admin-content {
+                width: calc(100% - 80px);
+            }
         }
         
         .employer-cards {
             margin-top: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .employer-card {
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 20px;
             margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .employer-header {
@@ -134,6 +174,8 @@ try {
             margin-bottom: 15px;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .employer-name h3 {
@@ -146,6 +188,8 @@ try {
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .detail-group {
@@ -168,6 +212,8 @@ try {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .btn-verify {
@@ -193,7 +239,9 @@ try {
         .message {
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .success {
@@ -209,9 +257,11 @@ try {
         .no-employers {
             text-align: center;
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 50px 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .no-employers h3 {

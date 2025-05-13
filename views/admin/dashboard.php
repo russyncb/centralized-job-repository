@@ -648,13 +648,6 @@ $active_jobs_count = $stmt_active_jobs->fetch(PDO::FETCH_ASSOC)['active_jobs'];
         <?php include 'admin-sidebar.php'; ?>
         
         <div class="admin-content">
-            <div class="top-bar">
-                <h1>Admin Dashboard</h1>
-                <div class="user-info">
-                    <span>Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?></span>
-                </div>
-            </div>
-            
             <div class="stats-cards">
                 <div class="stat-card users-card">
                     <div class="stat-icon users-icon">👥</div>

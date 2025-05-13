@@ -181,95 +181,73 @@ $total_jobs = array_sum($status_totals);
         body {
             background-color: #f8f9fa;
             font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
         
         .admin-container {
             display: flex;
             min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid #495057;
-            margin-bottom: 20px;
-        }
-        
-        .sidebar-header h3 {
-            color: white;
-            font-size: 1.3rem;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        
-        .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: #ced4da;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: #495057;
-            color: white;
-            border-left-color: #0056b3;
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        .main-content {
+        .admin-content {
             flex: 1;
-            padding: 20px;
+            padding: 105px 30px 30px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            width: calc(100% - 270px);
+            max-width: 100%;
+            box-sizing: border-box;
             overflow-y: auto;
         }
         
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
+        .sidebar.collapsed ~ .admin-content {
+            width: calc(100% - 80px);
         }
         
         .stats-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-content {
+                width: calc(100% - 80px);
+            }
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 15px;
-            flex: 1;
             text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .stat-number {
@@ -285,16 +263,20 @@ $total_jobs = array_sum($status_totals);
         
         .filters {
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             padding: 20px;
             margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .filter-form {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .filter-group {
@@ -314,6 +296,7 @@ $total_jobs = array_sum($status_totals);
             padding: 8px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            box-sizing: border-box;
         }
         
         .btn-filter {
@@ -339,9 +322,10 @@ $total_jobs = array_sum($status_totals);
         .jobs-table {
             width: 100%;
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
+            box-sizing: border-box;
         }
         
         table {
@@ -467,7 +451,9 @@ $total_jobs = array_sum($status_totals);
         .message {
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .success {
