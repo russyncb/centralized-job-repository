@@ -129,6 +129,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
     <style>
         /* Sidebar Modernization */
         .sidebar {
+            position: relative;
             width: 250px;
             background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             color: #fff;
@@ -400,6 +401,22 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             font-size: 0.95rem;
             margin-bottom: 0.5rem;
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+        
+        .company-info:hover .professional-headline {
+            white-space: normal;
+            word-wrap: break-word;
+            position: relative;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
         }
         
         .top-bar h1 {
@@ -661,251 +678,6 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         
         .job-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .job-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        
-        .job-header {
-            display: flex;
-            margin-bottom: 15px;
-        }
-        
-        .job-info {
-            flex: 1;
-        }
-        
-        .job-title a {
-            color: #0056b3;
-            text-decoration: none;
-        }
-        
-        .job-title a:hover {
-            text-decoration: underline;
-        }
-        
-        .job-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 10px;
-            color: #666;
-            font-size: 0.85rem;
-        }
-        
-        .job-actions {
-            margin-top: 15px;
-        }
-        
-        .job-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .tag {
-            background-color: #f0f5ff;
-            color: #0056b3;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-        }
-        
-        .no-items {
-            text-align: center;
-            padding: 30px;
-            color: #666;
-        }
-        
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .alert {
-            background-color: #fff8e1;
-            border-left: 4px solid #f57c00;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .alert p {
-            margin: 0;
-        }
-        
-        /* Collapsible Sidebar */
-        .sidebar.collapsed {
-            width: 70px;
-        }
-        
-        .sidebar.collapsed .sidebar-header h3,
-        .sidebar.collapsed .sidebar-menu a span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .sidebar-menu a {
-            padding: 14px;
-            justify-content: center;
-        }
-        
-        .sidebar.collapsed .sidebar-menu a i {
-            margin: 0;
-        }
-        
-        /* Sidebar Toggle Button - New Position */
-        .sidebar-toggle {
-            position: fixed;
-            top: 20px;
-            left: 260px; /* Position it just outside the expanded sidebar */
-            width: 32px;
-            height: 32px;
-            background: #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
-            border: none;
-            color: #1a3b5d;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar.collapsed .sidebar-toggle {
-            left: 80px; /* Adjust position when sidebar is collapsed */
-            transform: rotate(180deg);
-        }
-        
-        /* Floating Chatbot */
-        .chatbot-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-        }
-        
-        .chatbot-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.3s ease;
-        }
-        
-        .chatbot-icon:hover {
-            transform: scale(1.1);
-        }
-        
-        .chatbot-icon svg {
-            width: 28px;
-            height: 28px;
-            color: white;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-
-        .dashboard-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            padding: 25px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            cursor: pointer;
-            border: 1px solid #eef2f7;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            background: #f1f5f9;
-            color: #0f172a;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-
-        .stat-label {
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        .recommended-jobs {
-            margin-bottom: 30px;
-        }
-
-        .job-grid {
-            position: relative;
-            margin-top: 20px;
-            min-height: 600px; /* Fixed height for the grid container */
-        }
-        
-        .job-group {
-            display: none;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, minmax(250px, 1fr)); /* Fixed height for rows */
-            gap: 20px;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: transform 0.5s ease, opacity 0.5s ease;
-        }
-        
-        .job-group.active {
-            display: grid;
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        .job-card {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             border-radius: 12px;
             padding: 15px;
@@ -914,24 +686,42 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            max-height: 250px; /* Maximum height for each card */
+            max-height: 250px;
             overflow: hidden;
+        }
+
+        .job-card:nth-child(3n+1) {
+            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+            border-color: rgba(25, 118, 210, 0.1);
+        }
+
+        .job-card:nth-child(3n+2) {
+            background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);
+            border-color: rgba(156, 39, 176, 0.1);
+        }
+
+        .job-card:nth-child(3n+3) {
+            background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
+            border-color: rgba(76, 175, 80, 0.1);
         }
         
         .job-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
 
         .job-header {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
         }
         
         .job-title {
             font-size: 1.1rem;
             font-weight: 600;
             color: #1e293b;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -942,7 +732,15 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         .company-name {
             font-size: 0.9rem;
             color: #64748b;
-            margin-bottom: 8px;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .company-name:before {
+            content: '•';
+            color: #94a3b8;
         }
         
         .job-meta {
@@ -952,12 +750,29 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             font-size: 0.85rem;
             color: #64748b;
             margin-bottom: 8px;
+            padding: 8px 0;
+        }
+
+        .job-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,255,255,0.5);
+            padding: 4px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
         }
         
         .deadline-tag {
             font-size: 0.8rem;
             padding: 4px 8px;
             margin-top: auto;
+            background: rgba(52, 211, 153, 0.1);
+            color: #059669;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .category-match {
@@ -966,8 +781,17 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             display: flex;
             align-items: center;
             gap: 4px;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+            width: fit-content;
         }
 
+        .category-match .icon {
+            color: #f59e0b;
+        }
+        
         .recent-applications {
             background: linear-gradient(135deg, #EBF3FE 0%, #F5F9FF 50%, #EBF3FE 100%);
             border-radius: 16px;
@@ -1062,6 +886,36 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         .job-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -16px;
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            transform: rotate(180deg);
+            right: -16px;
         }
     </style>
 </head>

@@ -181,6 +181,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
     <style>
         /* Modern Sidebar */
         .sidebar {
+            position: relative;
             width: 250px;
             background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
             color: #fff;
@@ -189,7 +190,8 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            transition: all 0.3s ease;
+            transition: width 0.3s ease;
+            z-index: 100;
         }
         
         .sidebar.collapsed {
@@ -211,19 +213,19 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         
         .sidebar-toggle {
-            position: fixed;
+            position: absolute;
             top: 20px;
-            left: 260px; /* Position it just outside the expanded sidebar */
+            right: -16px;
             width: 32px;
             height: 32px;
-            background: #fff;
+            background: #ffffff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
+            z-index: 101;
             border: none;
             color: #1a3b5d;
             font-size: 1.2rem;
@@ -231,8 +233,8 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         
         .sidebar.collapsed .sidebar-toggle {
-            left: 80px; /* Adjust position when sidebar is collapsed */
             transform: rotate(180deg);
+            right: -16px;
         }
         
         .sidebar-header {
@@ -526,140 +528,141 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             color: #333;
         }
         
-        /* Jobseeker Profile Styles */
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Arial', sans-serif;
-        }
-        
-        .jobseeker-container {
-            display: flex;
-            min-height: 100vh;
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
+        /* Modern Profile Page Styles */
         .profile-container {
             display: grid;
             grid-template-columns: 3fr 1fr;
-            gap: 20px;
-        }
-        
-        .profile-main {
-            margin-bottom: 20px;
+            gap: 30px;
+            margin-top: 20px;
+            min-height: calc(100vh - 200px);  /* Account for top bar and padding */
         }
         
         .profile-card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.03);
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(147, 197, 253, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .profile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 25px rgba(0,0,0,0.05);
         }
         
         .profile-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #EBF3FE 0%, #F5F9FF 50%, #EBF3FE 100%);
+            position: relative;
+        }
+        
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
         }
         
         .profile-header h3 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            color: #1e293b;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .profile-header h3::before {
+            content: '📄';
+            font-size: 1.4rem;
         }
         
         .profile-content {
-            padding: 20px;
+            padding: 30px;
         }
         
+        /* Form Styling */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 500;
-            color: #444;
+            color: #334155;
+            font-size: 0.95rem;
         }
         
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            color: #334155;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+            background: #ffffff;
         }
         
         .form-group textarea {
             height: 120px;
             resize: vertical;
-        }
-        
-        .form-row {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .form-row .form-group {
-            flex: 1;
-        }
-        
-        .required::after {
-            content: '*';
-            color: #dc3545;
-            margin-left: 4px;
+            line-height: 1.5;
         }
         
         .help-text {
             font-size: 0.85rem;
-            color: #666;
-            margin-top: 5px;
+            color: #64748b;
+            margin-top: 6px;
         }
         
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            text-decoration: none;
-        }
-        
-        .btn-primary {
-            background-color: #0056b3;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #004494;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .resume-preview {
-            margin-bottom: 20px;
-        }
-        
+        /* Resume Section */
         .resume-file {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
             display: flex;
             align-items: center;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .resume-file:hover {
+            border-color: #60a5fa;
+            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.1);
         }
         
         .resume-icon {
-            font-size: 1.5rem;
-            margin-right: 15px;
-            color: #0056b3;
+            font-size: 2rem;
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
         }
         
         .resume-info {
@@ -667,73 +670,109 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         
         .resume-name {
-            font-weight: 500;
+            font-weight: 600;
+            color: #1e293b;
             margin-bottom: 5px;
+            font-size: 1.05rem;
         }
         
         .resume-date {
             font-size: 0.85rem;
-            color: #666;
+            color: #64748b;
         }
         
-        .resume-actions {
-            display: flex;
-            gap: 10px;
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
         
         .btn-outline {
-            background-color: transparent;
-            border: 1px solid #0056b3;
-            color: #0056b3;
+            background: transparent;
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
         }
         
         .btn-outline:hover {
-            background-color: #f0f5ff;
-            text-decoration: none;
+            background: rgba(59, 130, 246, 0.05);
+            border-color: #2563eb;
+            color: #2563eb;
         }
         
         .btn-sm {
-            padding: 5px 10px;
+            padding: 8px 16px;
             font-size: 0.85rem;
         }
         
+        /* Profile Summary Card */
         .profile-summary {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-summary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
         }
         
         .profile-avatar {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             border-radius: 50%;
-            background-color: #e3f2fd;
-            color: #1976d2;
-            font-size: 2rem;
+            margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
+            font-size: 2.5rem;
+            color: white;
+            border: 4px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
         .profile-name {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            text-align: center;
             margin-bottom: 5px;
+            color: white;
         }
         
         .profile-email {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 25px;
+            font-size: 0.95rem;
         }
         
         .progress-bar {
             height: 8px;
-            background-color: #e9ecef;
+            background: rgba(255,255,255,0.1);
             border-radius: 4px;
             overflow: hidden;
             margin-bottom: 10px;
@@ -741,37 +780,204 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         
         .progress {
             height: 100%;
-            background-color: #0056b3;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
             border-radius: 4px;
+            transition: width 0.5s ease;
         }
         
         .progress-label {
             display: flex;
             justify-content: space-between;
-            font-size: 0.85rem;
-            color: #666;
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
         }
         
         .missing-fields {
-            margin-top: 15px;
-            font-size: 0.85rem;
-            color: #666;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.9);
+            margin-top: 20px;
         }
         
+        .missing-fields strong {
+            color: #93c5fd;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        /* Profile Tips Card */
+        .profile-tips {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+        
+        .profile-tips .profile-header h3::before {
+            content: '💡';
+        }
+        
+        .profile-tips ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+        
+        .profile-tips li {
+            color: #334155;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            position: relative;
+        }
+        
+        .profile-tips li::before {
+            content: '•';
+            color: #3b82f6;
+            font-size: 1.5rem;
+            position: absolute;
+            left: -20px;
+            top: -8px;
+        }
+        
+        /* Messages */
         .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
         
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .success::before {
+            content: '✓';
+            background: #22c55e;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
         }
         
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .error::before {
+            content: '!';
+            background: #ef4444;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* Form Row Improvements */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        /* Required Field Indicator */
+        .required::after {
+            content: '*';
+            color: #ef4444;
+            margin-left: 4px;
+        }
+        
+        /* File Input Styling */
+        input[type="file"] {
+            background: #f8fafc;
+            padding: 20px;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="file"]:hover {
+            border-color: #60a5fa;
+            background: #f1f5f9;
+        }
+        
+        /* Disabled Input Styling */
+        input:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        
+        /* Basic Layout Fixes */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .jobseeker-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            background: #f8fafc;
+            overflow-y: auto;
+            min-height: 100vh;
+            width: calc(100% - 250px);  /* Account for sidebar width */
+        }
+
+        .sidebar.collapsed + .main-content {
+            width: calc(100% - 70px);  /* Adjust when sidebar is collapsed */
+        }
+
+        /* Character Counter Styles */
+        .character-counter {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .character-counter.near-limit {
+            color: #f59e0b;
+        }
+
+        .character-counter.at-limit {
+            color: #ef4444;
         }
     </style>
 </head>
@@ -888,8 +1094,13 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                                 
                                 <div class="form-group">
                                     <label for="headline">Professional Headline</label>
-                                    <input type="text" id="headline" name="headline" value="<?php echo htmlspecialchars($jobseeker['headline']); ?>" placeholder="e.g. Senior Software Developer with 5+ years of experience">
-                                    <div class="help-text">A brief professional summary that appears at the top of your profile.</div>
+                                    <input type="text" id="headline" name="headline" 
+                                           value="<?php echo htmlspecialchars($jobseeker['headline']); ?>" 
+                                           placeholder="e.g. Senior Software Developer with 5+ years of experience"
+                                           maxlength="100"
+                                           oninput="updateCharacterCount(this)">
+                                    <div class="character-counter" id="headlineCounter">0/100 characters</div>
+                                    <div class="help-text">A brief professional summary (max 100 characters). This will appear on your profile and dashboard.</div>
                                 </div>
                                 
                                 <div class="form-row">
@@ -982,14 +1193,18 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             // Sidebar Toggle
             const sidebar = document.querySelector('.sidebar');
             const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const mainContent = document.querySelector('.main-content');
             
             // Check localStorage for sidebar state
             if(localStorage.getItem('sidebarCollapsed') === 'true') {
                 sidebar.classList.add('collapsed');
+                mainContent.style.width = 'calc(100% - 70px)';
             }
             
             sidebarToggle.addEventListener('click', function() {
                 sidebar.classList.toggle('collapsed');
+                // Adjust main content width
+                mainContent.style.width = sidebar.classList.contains('collapsed') ? 'calc(100% - 70px)' : 'calc(100% - 250px)';
                 // Save state to localStorage
                 localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
             });
@@ -1010,6 +1225,28 @@ $profile_completion = 100 - (count($missing_fields) * 20);
                 // You can implement your chatbot logic here
                 alert('Chat functionality coming soon!');
             });
+
+            function updateCharacterCount(input) {
+                const counter = document.getElementById('headlineCounter');
+                const maxLength = input.maxLength;
+                const currentLength = input.value.length;
+                counter.textContent = `${currentLength}/${maxLength} characters`;
+                
+                // Update counter color based on remaining characters
+                if (currentLength >= maxLength) {
+                    counter.className = 'character-counter at-limit';
+                } else if (currentLength >= maxLength * 0.8) {
+                    counter.className = 'character-counter near-limit';
+                } else {
+                    counter.className = 'character-counter';
+                }
+            }
+
+            // Initialize character counter on page load
+            const headlineInput = document.getElementById('headline');
+            if (headlineInput) {
+                updateCharacterCount(headlineInput);
+            }
         });
     </script>
     <script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
