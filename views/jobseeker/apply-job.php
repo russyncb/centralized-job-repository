@@ -893,6 +893,62 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 });
             }
+            
+            // CV validation and form helper
+            const applicationForm = document.querySelector('form');
+            const newCvTitle = document.getElementById('new_cv_title');
+            const newCvFile = document.getElementById('new_cv');
+            const existingCvRadios = document.querySelectorAll('input[name="cv_document"]');
+            
+            // Highlight the CV section as required
+            const cvSection = document.querySelector('.document-section:first-of-type');
+            if (cvSection) {
+                cvSection.style.borderColor = '#ef4444';
+                cvSection.style.borderWidth = '2px';
+            }
+            
+            // Function to validate CV selection or upload
+            function validateCVSelection() {
+                let hasExistingCV = false;
+                existingCvRadios.forEach(radio => {
+                    if (radio.checked) {
+                        hasExistingCV = true;
+                    }
+                });
+                
+                let hasNewCV = newCvTitle.value.trim() !== '' && newCvFile.files.length > 0;
+                
+                return hasExistingCV || hasNewCV;
+            }
+            
+            // Add form validation
+            applicationForm.addEventListener('submit', function(e) {
+                if (!validateCVSelection()) {
+                    e.preventDefault();
+                    alert('Please either select an existing CV or upload a new one with both a title and file.');
+                    
+                    // Highlight the CV section
+                    cvSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+            
+            // Real-time validation feedback
+            newCvTitle.addEventListener('input', updateCVValidation);
+            newCvFile.addEventListener('change', updateCVValidation);
+            existingCvRadios.forEach(radio => {
+                radio.addEventListener('change', updateCVValidation);
+            });
+            
+            function updateCVValidation() {
+                if (validateCVSelection()) {
+                    cvSection.style.borderColor = '#22c55e';
+                } else {
+                    cvSection.style.borderColor = '#ef4444';
+                }
+            }
+            
+            // Update validation initially
+            updateCVValidation();
         });
     </script>
 </body>
