@@ -567,82 +567,133 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
         
         .application-item {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 15px;
-            margin-bottom: 15px;
             display: flex;
             align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .application-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .application-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            border-color: rgba(59, 130, 246, 0.1);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+        }
+        
+        .application-item:hover .job-title {
+            color: #2563eb;
+        }
+        
+        .application-item:hover .company-logo {
+            transform: scale(1.05);
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+        
+        .application-item:hover::before {
+            width: 6px;
+            background: #3b82f6;
+        }
+        
+        .application-item:hover .application-status::before {
+            left: 100%;
+        }
+        
+        .application-item:hover .application-status {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .application-item:hover .company-name {
+            color: #4b5563;
         }
         
         .company-logo {
-            width: 50px;
-            height: 50px;
-            background-color: #f8f9fa;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-right: 15px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        
-        .company-logo img {
-            max-width: 40px;
-            max-height: 40px;
-        }
-        
-        .application-details {
-            flex: 1;
-        }
-        
-        .job-title {
+            font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-        }
-        
-        .company-name {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-        
-        .application-meta {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            color: #666;
-            font-size: 0.85rem;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
         }
         
         .application-status {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: capitalize;
             margin-left: auto;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
         
-        .status-pending {
-            background-color: #e0f7fa;
-            color: #0097a7;
+        .application-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
         }
         
-        .status-shortlisted {
-            background-color: #e8f5e9;
-            color: #388e3c;
+        .application-item:hover .application-status::before {
+            left: 100%;
         }
         
-        .status-rejected {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+        .status-pending:hover {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            border-color: #fdba74;
         }
         
-        .status-hired {
-            background-color: #e3f2fd;
-            color: #1976d2;
+        .status-accepted:hover {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+        }
+        
+        .status-rejected:hover {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-color: #fca5a5;
+        }
+        
+        .status-shortlisted:hover {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #93c5fd;
         }
         
         .view-all {
@@ -977,7 +1028,7 @@ $profile_completion = 100 - (count($missing_fields) * 20);
         }
 
         .recent-applications {
-            background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
+            background: linear-gradient(135deg, #EBF3FE 0%, #F5F9FF 50%, #EBF3FE 100%);
             border-radius: 16px;
             box-shadow: 0 2px 20px rgba(0,0,0,0.03);
             padding: 30px;
@@ -1021,12 +1072,6 @@ $profile_completion = 100 - (count($missing_fields) * 20);
             height: 3px;
             background: linear-gradient(90deg, #3b82f6, #60a5fa);
             border-radius: 2px;
-        }
-
-        .application-item {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
         }
     </style>
 </head>

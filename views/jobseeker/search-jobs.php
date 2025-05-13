@@ -605,8 +605,43 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
         }
         
         .deadline-info {
-            color: #e65100;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .deadline-today {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+            color: #e53e3e;
+            border: 1px solid #fed7d7;
+        }
+
+        .deadline-tomorrow {
+            background: linear-gradient(135deg, #fff8f1 0%, #ffedd5 100%);
+            color: #dd6b20;
+            border: 1px solid #fbd38d;
+        }
+
+        .deadline-week {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .deadline-normal {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .deadline-icon {
+            display: inline-block;
+            margin-right: 4px;
+            font-size: 1rem;
         }
         
         @media (max-width: 768px) {
@@ -735,13 +770,37 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                                         <?php 
                                         $deadline = new DateTime($job['application_deadline']);
                                         $today = new DateTime();
+                                        $tomorrow = new DateTime('tomorrow');
                                         $interval = $today->diff($deadline);
+                                        
+                                        // Determine deadline class and icon
+                                        $deadlineClass = 'deadline-normal';
+                                        $deadlineIcon = '📅';
+                                        
+                                        if ($today->format('Y-m-d') === $deadline->format('Y-m-d')) {
+                                            $deadlineClass = 'deadline-today';
+                                            $deadlineIcon = '⚡';
+                                        } elseif ($tomorrow->format('Y-m-d') === $deadline->format('Y-m-d')) {
+                                            $deadlineClass = 'deadline-tomorrow';
+                                            $deadlineIcon = '⏰';
+                                        } elseif ($interval->days <= 7) {
+                                            $deadlineClass = 'deadline-week';
+                                            $deadlineIcon = '📆';
+                                        }
                                         ?>
-                                        <span class="deadline-info">
-                                            • Deadline: <?php 
-                                            echo date('M d, Y', strtotime($job['application_deadline']));
-                                            if($interval->days <= 7) {
-                                                echo ' (' . $interval->days . ' days left)';
+                                        <span class="deadline-info <?php echo $deadlineClass; ?>">
+                                            <span class="deadline-icon"><?php echo $deadlineIcon; ?></span>
+                                            Deadline: 
+                                            <?php
+                                            if ($today->format('Y-m-d') === $deadline->format('Y-m-d')) {
+                                                echo 'Today, 11:59 PM';
+                                            } elseif ($tomorrow->format('Y-m-d') === $deadline->format('Y-m-d')) {
+                                                echo 'Tomorrow, 11:59 PM';
+                                            } else {
+                                                echo date('M d, Y', strtotime($job['application_deadline']));
+                                                if($interval->days <= 7) {
+                                                    echo ' (' . $interval->days . ' days left)';
+                                                }
                                             }
                                             ?>
                                         </span>
@@ -867,6 +926,48 @@ $job_types = ['full-time', 'part-time', 'contract', 'internship', 'remote'];
                     }
                 });
             }
+
+            // New code for immediate search on category and job type changes
+            const categorySelect = document.getElementById('category');
+            const jobTypeSelect = document.getElementById('job_type');
+            const searchForm = document.querySelector('.search-form');
+            const keywordInput = document.getElementById('keyword');
+            const locationInput = document.getElementById('location');
+
+            // Function to check if only category or job type has changed
+            function isOnlyFilterChange(changedElement) {
+                const keywordEmpty = !keywordInput.value.trim();
+                const locationEmpty = !locationInput.value.trim();
+                return keywordEmpty && locationEmpty && 
+                       (changedElement === categorySelect || changedElement === jobTypeSelect);
+            }
+
+            // Handle category change
+            categorySelect.addEventListener('change', function(e) {
+                if (isOnlyFilterChange(categorySelect)) {
+                    searchForm.submit();
+                }
+            });
+
+            // Handle job type change
+            jobTypeSelect.addEventListener('change', function(e) {
+                if (isOnlyFilterChange(jobTypeSelect)) {
+                    searchForm.submit();
+                }
+            });
+
+            // Prevent form submission on enter key for keyword and location
+            keywordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
+
+            locationInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
         });
     </script>
 </body>
