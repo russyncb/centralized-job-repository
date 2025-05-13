@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 header("Location: " . SITE_URL . "/views/admin/manage-jobs.php");
                 exit;
-                break;
+                
             default:
                 $status = 'active';
                 $message = "Job status updated.";
