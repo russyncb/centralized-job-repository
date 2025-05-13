@@ -364,20 +364,25 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .recent-jobs {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             margin-bottom: 30px;
+            border: 1px solid rgba(0,0,0,0.05);
+            overflow: hidden;
         }
         
         .recent-jobs-header {
             padding: 20px;
             border-bottom: 1px solid #eee;
+            color: white;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
         }
         
         .recent-jobs-header h3 {
             margin: 0;
             font-size: 1.2rem;
+            color: white;
         }
         
         .recent-jobs-list {
@@ -387,76 +392,142 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         }
         
         .job-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
+            padding: 20px 25px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .job-item:hover {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f4f9 100%);
+            transform: translateX(5px);
         }
         
         .job-item:last-child {
             border-bottom: none;
         }
         
+        .job-details {
+            flex: 1;
+        }
+        
         .job-details h4 {
-            margin: 0 0 5px;
+            margin: 0 0 8px;
             font-size: 1.1rem;
+            color: #1a3b5d;
+            font-weight: 600;
         }
         
         .job-meta {
             display: flex;
-            gap: 15px;
-            color: #666;
+            gap: 20px;
+            color: #64748b;
             font-size: 0.9rem;
+            align-items: center;
+        }
+        
+        .job-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .job-meta i {
+            font-size: 1.1em;
+            opacity: 0.7;
+        }
+        
+        .job-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            min-width: 140px;
         }
         
         .job-status {
-            display: inline-block;
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
-            text-align: center;
+            font-weight: 500;
+            gap: 5px;
         }
         
         .status-active {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .status-closed {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
         }
         
         .status-draft {
-            background-color: #e0f7fa;
-            color: #0097a7;
+            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            color: white;
         }
         
         .status-archived {
-            background-color: #f5f5f5;
-            color: #757575;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            color: white;
+        }
+        
+        .job-applications {
+            font-size: 0.9rem;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         .job-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            margin-top: 10px;
         }
         
         .btn-sm {
-            padding: 4px 10px;
+            padding: 6px 12px;
             font-size: 0.85rem;
-            border-radius: 4px;
+            border-radius: 8px;
             text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
         }
         
         .btn-blue {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
         }
         
         .btn-blue:hover {
-            background-color: #bbdefb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f4f9 100%);
+        }
+        
+        .empty-state p {
+            margin: 0;
+            font-size: 1.1rem;
         }
         
         .notification-card {
@@ -481,16 +552,6 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
         
         .notification-message p {
             margin: 0;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 30px 20px;
-            color: #666;
-        }
-        
-        .empty-state p {
-            margin-bottom: 0;
         }
     </style>
 </head>
@@ -576,22 +637,35 @@ $recent_jobs = $stmt_recent_jobs->fetchAll(PDO::FETCH_ASSOC);
                                 <div class="job-details">
                                     <h4><?php echo htmlspecialchars($job['title']); ?></h4>
                                     <div class="job-meta">
-                                        <span><?php echo htmlspecialchars($job['location']); ?></span>
-                                        <span><?php echo ucfirst($job['job_type']); ?></span>
-                                        <span>Posted: <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
+                                        <span><i>📍</i><?php echo htmlspecialchars($job['location']); ?></span>
+                                        <span><i>💼</i><?php echo ucfirst($job['job_type']); ?></span>
+                                        <span><i>📅</i>Posted: <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
                                     </div>
                                 </div>
                                 <div class="job-info">
                                     <span class="job-status status-<?php echo $job['status']; ?>">
+                                        <?php if($job['status'] == 'active'): ?>
+                                            <i>🟢</i>
+                                        <?php elseif($job['status'] == 'closed'): ?>
+                                            <i>🔴</i>
+                                        <?php elseif($job['status'] == 'draft'): ?>
+                                            <i>🔵</i>
+                                        <?php else: ?>
+                                            <i>⚪</i>
+                                        <?php endif; ?>
                                         <?php echo ucfirst($job['status']); ?>
                                     </span>
                                     <div class="job-applications">
-                                        <?php echo $job['applications_count']; ?> application(s)
+                                        <i>👥</i> <?php echo $job['applications_count']; ?> application(s)
                                     </div>
-                                </div>
-                                <div class="job-actions">
-                                    <a href="<?php echo SITE_URL; ?>/views/employer/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn-sm btn-blue">View</a>
-                                    <a href="<?php echo SITE_URL; ?>/views/employer/edit-job.php?id=<?php echo $job['job_id']; ?>" class="btn-sm btn-blue">Edit</a>
+                                    <div class="job-actions">
+                                        <a href="<?php echo SITE_URL; ?>/views/employer/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn-sm btn-blue">
+                                            <i>👁️</i> View
+                                        </a>
+                                        <a href="<?php echo SITE_URL; ?>/views/employer/edit-job.php?id=<?php echo $job['job_id']; ?>" class="btn-sm btn-blue">
+                                            <i>✏️</i> Edit
+                                        </a>
+                                    </div>
                                 </div>
                             </li>
                         <?php endforeach; ?>
