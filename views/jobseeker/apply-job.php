@@ -907,8 +907,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 cvSection.style.borderWidth = '2px';
             }
             
-            // Function to validate CV selection or upload
+            // FIXED FUNCTION: Improved validation logic
             function validateCVSelection() {
+                // Check if any existing CV is selected
                 let hasExistingCV = false;
                 existingCvRadios.forEach(radio => {
                     if (radio.checked) {
@@ -916,19 +917,34 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 });
                 
-                let hasNewCV = newCvTitle.value.trim() !== '' && newCvFile.files.length > 0;
+                // Check if new CV is being uploaded - either both fields or neither should be filled
+                let hasTitle = newCvTitle.value.trim() !== '';
+                let hasFile = newCvFile.files.length > 0;
                 
-                return hasExistingCV || hasNewCV;
+                // Valid if either:
+                // 1. An existing CV is selected, OR
+                // 2. Both new CV title and file are provided
+                // 3. Neither new CV title nor file are provided (user is selecting an existing CV)
+                let validNewCV = (hasTitle && hasFile) || (!hasTitle && !hasFile);
+                
+                // Return true if existing CV selected OR valid new CV combination
+                return hasExistingCV || (validNewCV && hasExistingCV) || (hasTitle && hasFile);
             }
             
             // Add form validation
             applicationForm.addEventListener('submit', function(e) {
+                // Prevent default form submission
+                e.preventDefault();
+                
+                // Check if CV is selected/uploaded properly
                 if (!validateCVSelection()) {
-                    e.preventDefault();
-                    alert('Please either select an existing CV or upload a new one with both a title and file.');
-                    
-                    // Highlight the CV section
+                    alert('Please either select an existing CV or complete both title and file fields when uploading a new CV.');
+                    // Highlight the CV section and scroll to it
+                    cvSection.style.borderColor = '#ef4444';
                     cvSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    // If validation passes, submit the form
+                    this.submit();
                 }
             });
             

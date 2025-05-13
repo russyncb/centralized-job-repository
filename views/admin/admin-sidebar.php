@@ -106,7 +106,7 @@ $pending_queries = get_pending_queries_count();
         </li>
         
         <li>
-            <a href="<?php echo SITE_URL; ?>/views/auth/logout.php" onclick="return confirm('Are you sure you want to logout?') || event.preventDefault();">
+            <a href="<?php echo SITE_URL; ?>/views/auth/logout.php">
                 <i class="menu-icon">🚪</i>
                 <span class="menu-text">Logout</span>
             </a>
