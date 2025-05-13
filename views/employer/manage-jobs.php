@@ -422,16 +422,17 @@ foreach($status_counts as $count) {
         }
         
         .filters-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
         .filter-form {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: flex-end;
         }
         
@@ -441,263 +442,301 @@ foreach($status_counts as $count) {
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #444;
-            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #1a3b5d;
+            font-size: 0.95rem;
         }
         
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #1557b0;
+            box-shadow: 0 0 0 3px rgba(21, 87, 176, 0.1);
+            outline: none;
         }
         
         .btn-filter {
-            background-color: #0056b3;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
             color: white;
             border: none;
-            padding: 9px 15px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 12px;
             cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(21, 87, 176, 0.2);
         }
         
         .btn-reset {
-            background-color: #6c757d;
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
             color: white;
             text-decoration: none;
-            padding: 9px 15px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 12px;
             display: inline-block;
-        }
-        
-        .btn-reset:hover {
-            background-color: #5a6268;
-            color: white;
-            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
         }
         
         .status-tabs {
             display: flex;
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 10px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
         
         .status-tab {
-            padding: 10px 20px;
+            padding: 12px 24px;
             cursor: pointer;
-            color: #555;
+            color: #64748b;
             font-weight: 500;
             position: relative;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .status-tab:hover {
+            color: #1557b0;
+            background: rgba(21, 87, 176, 0.05);
         }
         
         .status-tab.active {
-            color: #0056b3;
-        }
-        
-        .status-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #0056b3;
+            color: white;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
         }
         
         .status-count {
-            display: inline-block;
-            background-color: #f0f0f0;
-            color: #555;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+            color: inherit;
             border-radius: 20px;
-            padding: 2px 8px;
+            padding: 2px 10px;
             font-size: 0.85rem;
-            margin-left: 5px;
+            margin-left: 8px;
+            min-width: 24px;
         }
         
         .jobs-table {
-            width: 100%;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
         table {
             width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
+            border-collapse: separate;
+            border-spacing: 0;
         }
         
         th {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f4f9 100%);
             font-weight: 600;
-            color: #333;
+            color: #1a3b5d;
+            padding: 16px 20px;
+            font-size: 0.95rem;
         }
         
-        .job-title {
-            font-weight: 500;
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        tr:hover td {
+            background: rgba(21, 87, 176, 0.02);
         }
         
         .job-title a {
-            color: #0056b3;
+            color: #1557b0;
             text-decoration: none;
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: color 0.3s ease;
         }
         
         .job-title a:hover {
-            text-decoration: underline;
+            color: #1a3b5d;
         }
         
         .job-meta {
-            font-size: 0.85rem;
-            color: #666;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #64748b;
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
         
         .job-status {
-            display: inline-block;
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
+            font-weight: 500;
         }
         
         .status-active {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .status-closed {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
         }
         
         .status-draft {
-            background-color: #e0f7fa;
-            color: #0097a7;
-        }
-        
-        .status-archived {
-            background-color: #f5f5f5;
-            color: #757575;
+            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            color: white;
         }
         
         .applications {
-            text-align: center;
+            font-weight: 600;
+            color: #1557b0;
+        }
+        
+        .applications a {
+            text-decoration: none;
+            color: inherit;
+            background: #e0f2fe;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .applications a:hover {
+            background: #bae6fd;
+            transform: translateY(-2px);
+        }
+        
+        .deadline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
             font-weight: 500;
+        }
+        
+        .deadline.expired {
+            background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%);
+            color: white;
+        }
+        
+        .deadline.ending-soon {
+            background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+            color: white;
         }
         
         .actions {
             display: flex;
-            gap: 5px;
+            gap: 8px;
         }
         
         .btn-action {
-            padding: 5px 10px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 0.85rem;
             cursor: pointer;
-            background-color: #f0f0f0;
-            color: #333;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         
         .btn-view {
-            background-color: #e3f2fd;
-            color: #1976d2;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
         }
         
         .btn-edit {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .btn-activate {
-            background-color: #e8f5e9;
-            color: #388e3c;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
         }
         
         .btn-close {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
         }
         
         .btn-delete {
-            background-color: #fbe9e7;
-            color: #d32f2f;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .no-jobs {
             text-align: center;
-            padding: 50px 20px;
-            color: #666;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f4f9 100%);
+            border-radius: 16px;
+            margin: 30px 0;
         }
         
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
+        .no-jobs h3 {
+            color: #1a3b5d;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
         }
         
-        .pagination-link {
+        .no-jobs p {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        
+        .no-jobs a {
             display: inline-block;
-            padding: 5px 10px;
-            margin: 0 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            color: #333;
-            text-decoration: none;
-        }
-        
-        .pagination-link.active {
-            background-color: #0056b3;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #1557b0 0%, #1a3b5d 100%);
             color: white;
-            border-color: #0056b3;
-        }
-        
-        .pagination-link:hover:not(.active) {
-            background-color: #f5f5f5;
-        }
-        
-        .deadline {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-        }
-        
-        .deadline.expired {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        
-        .deadline.ending-soon {
-            background-color: #fff3e0;
-            color: #ef6c00;
-        }
-        
-        .no-deadline {
-            color: #757575;
-            font-style: italic;
-            font-size: 0.85rem;
-        }
-        
-        .jobs-table th a {
-            color: #333;
             text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
         
-        .jobs-table th a:hover {
-            color: #0056b3;
+        .no-jobs a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(21, 87, 176, 0.2);
         }
     </style>
 </head>
