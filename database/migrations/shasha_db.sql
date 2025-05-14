@@ -19,7 +19,9 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
-    status ENUM('active', 'inactive', 'suspended', 'pending') DEFAULT 'pending'
+    status ENUM('active', 'inactive', 'suspended', 'pending') DEFAULT 'pending',
+    verification_token VARCHAR(255) DEFAULT NULL,
+    is_verified BOOLEAN DEFAULT FALSE
 );
 
 -- Admin profiles
@@ -44,6 +46,7 @@ CREATE TABLE employer_profiles (
     verified BOOLEAN DEFAULT FALSE,
     verified_at TIMESTAMP NULL,
     verified_by INT,
+    business_file VARCHAR(255) DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (verified_by) REFERENCES users(user_id)
 );

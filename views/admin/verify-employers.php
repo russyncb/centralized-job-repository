@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get pending employers
 $query = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
-         u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at
+         u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
          FROM employer_profiles e
          JOIN users u ON e.user_id = u.user_id
          WHERE u.status = 'pending'
@@ -330,6 +330,17 @@ try {
                                         <span>
                                             <?php if(!empty($employer['website'])): ?>
                                                 <a href="<?php echo htmlspecialchars($employer['website']); ?>" target="_blank"><?php echo htmlspecialchars($employer['website']); ?></a>
+                                            <?php else: ?>
+                                                Not provided
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="detail-group">
+                                        <label>Business Document</label>
+                                        <span>
+                                            <?php if(!empty($employer['business_file'])): ?>
+                                                <a href="<?php echo SITE_URL . $employer['business_file']; ?>" target="_blank">View Document</a>
                                             <?php else: ?>
                                                 Not provided
                                             <?php endif; ?>

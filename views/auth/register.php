@@ -37,9 +37,20 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
     $role = $_POST['role'];
     
-    // If employer, get company name
+    // If employer, get company name and business file
     if($role == 'employer') {
         $company_name = trim($_POST['company_name']);
+        $business_file = $_FILES['business_file'];
+
+        // Validate business file
+        if($business_file['error'] == UPLOAD_ERR_OK) {
+            $target_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_files/';
+            $target_file = $target_dir . basename($business_file['name']);
+            move_uploaded_file($business_file['tmp_name'], $target_file);
+            $business_file_path = '/uploads/business_files/' . basename($business_file['name']);
+        } else {
+            $error = "Error uploading business file.";
+        }
     }
     
     // Validate input
@@ -51,9 +62,12 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         $error = "Passwords do not match.";
     } elseif(strlen($password) < 6) {
         $error = "Password must be at least 6 characters long.";
-    } elseif($role == 'employer' && empty($company_name)) {
-        $error = "Please enter company name.";
+    } elseif($role == 'employer' && (empty($company_name) || empty($business_file_path))) {
+        $error = "Please enter company name and upload a business file.";
     } else {
+        // Generate a unique verification token
+        $verification_token = bin2hex(random_bytes(16));
+
         // Prepare user data
         $userData = [
             'email' => $email,
@@ -61,12 +75,14 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             'role' => $role,
             'first_name' => $first_name,
             'last_name' => $last_name,
-            'phone' => $phone
+            'phone' => $phone,
+            'verification_token' => $verification_token
         ];
         
-        // Add company name if employer
+        // Add company name and business file if employer
         if($role == 'employer') {
             $userData['company_name'] = $company_name;
+            $userData['business_file'] = $business_file_path;
         }
         
         // Attempt registration
@@ -76,13 +92,34 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         if($result['success']) {
             $success = $result['message'];
             
+            // Send verification email
+            $mail = new PHPMailer\PHPMailer\PHPMailer();
+            $mail->isSMTP();
+            $mail->Host = 'smtp.example.com'; // Set the SMTP server to send through
+            $mail->SMTPAuth = true;
+            $mail->Username = 'your_email@example.com'; // SMTP username
+            $mail->Password = 'your_password'; // SMTP password
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            $mail->setFrom('no-reply@example.com', 'ShaSha CJRS');
+            $mail->addAddress($email, $first_name . ' ' . $last_name);
+
+            $mail->isHTML(true);
+            $mail->Subject = 'Email Verification';
+            $mail->Body    = 'Please click the link to verify your email: <a href="' . SITE_URL . '/verify-email.php?token=' . $verification_token . '">Verify Email</a>';
+
+            if(!$mail->send()) {
+                $error = 'Verification email could not be sent. Please try again later.';
+            }
+
             // Clear form data
             $email = $password = $confirm_password = $first_name = $last_name = $phone = $company_name = "";
             $role = "jobseeker";
             
             if($userData['role'] == 'employer') {
                 // For employers, show verification message
-                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system.";
+                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system. Please wait 30 minutes.";
             } else {
                 // For jobseekers
                 $message = "Registration successful! Please login to continue.";
@@ -281,7 +318,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             <div class="success-message"><?php echo $success; ?></div>
         <?php endif; ?>
         
-        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" enctype="multipart/form-data">
             <div class="form-row">
                 <div class="form-group">
                     <label for="first_name" class="required-field">First Name</label>
@@ -315,6 +352,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             <div class="form-group" id="company-field" style="display: <?php echo ($role == 'employer' ? 'block' : 'none'); ?>">
                 <label for="company_name" class="required-field">Company Name</label>
                 <input type="text" id="company_name" name="company_name" value="<?php echo $company_name; ?>">
+            </div>
+            
+            <div class="form-group" id="business-file-field" style="display: <?php echo ($role == 'employer' ? 'block' : 'none'); ?>;">
+                <label for="business_file" class="required-field">Business Document</label>
+                <input type="file" id="business_file" name="business_file" accept="application/pdf, image/*">
             </div>
             
             <div class="form-group">
