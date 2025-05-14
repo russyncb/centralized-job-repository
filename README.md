@@ -18,3 +18,5 @@ INSTRUCTIONS TO SETUP
 # type http://localhost/systems/claude/shasha
 
 #and you are up
+
+#make sure to change the name of the folder from centralised-job-repository to shasha
