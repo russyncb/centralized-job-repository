@@ -290,17 +290,23 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         }
     </style>
     <script>
-        // Function to toggle company name field based on role selection
+        // Function to toggle company name and business file fields based on role selection
         function toggleCompanyField() {
             const roleSelect = document.getElementById('role');
             const companyField = document.getElementById('company-field');
+            const businessFileField = document.getElementById('business-file-field');
             
             if(roleSelect.value === 'employer') {
                 companyField.style.display = 'block';
+                businessFileField.style.display = 'block';
             } else {
                 companyField.style.display = 'none';
+                businessFileField.style.display = 'none';
             }
         }
+
+        // Initialize the display based on the current role selection
+        document.addEventListener('DOMContentLoaded', toggleCompanyField);
     </script>
 </head>
 <body>
@@ -349,14 +355,14 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
                 </select>
             </div>
             
-            <div class="form-group" id="company-field" style="display: <?php echo ($role == 'employer' ? 'block' : 'none'); ?>">
+            <div class="form-group" id="company-field" style="display: none;">
                 <label for="company_name" class="required-field">Company Name</label>
                 <input type="text" id="company_name" name="company_name" value="<?php echo $company_name; ?>">
             </div>
             
-            <div class="form-group" id="business-file-field" style="display: <?php echo ($role == 'employer' ? 'block' : 'none'); ?>;">
+            <div class="form-group" id="business-file-field" style="display: none;">
                 <label for="business_file" class="required-field">Business Document</label>
-                <input type="file" id="business_file" name="business_file" accept="application/pdf, image/*">
+                <input type="file" id="business_file" name="business_file" accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .docx, .pdf">
             </div>
             
             <div class="form-group">
