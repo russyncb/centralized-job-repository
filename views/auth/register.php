@@ -288,6 +288,49 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         .back-link a:hover {
             text-decoration: underline;
         }
+        
+        /* Tooltip container */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        /* Tooltip text */
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Tooltip arrow */
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+
+        /* Show the tooltip text when you hover over the tooltip container */
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
     <script>
         // Function to toggle company name and business file fields based on role selection
@@ -361,7 +404,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             </div>
             
             <div class="form-group" id="business-file-field" style="display: none;">
-                <label for="business_file" class="required-field">Business Document</label>
+                <label for="business_file" class="required-field">Business Document
+                    <span class="tooltip">?
+                        <span class="tooltiptext">A business document is required to verify your company's legitimacy. Accepted formats: PDF, DOCX.</span>
+                    </span>
+                </label>
                 <input type="file" id="business_file" name="business_file" accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .docx, .pdf">
             </div>
             
