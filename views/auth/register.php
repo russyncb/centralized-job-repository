@@ -45,6 +45,12 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         // Validate business file
         if($business_file['error'] == UPLOAD_ERR_OK) {
             $target_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_files/';
+            
+            // Check if the directory exists, if not, create it
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0755, true);
+            }
+            
             $target_file = $target_dir . basename($business_file['name']);
             move_uploaded_file($business_file['tmp_name'], $target_file);
             $business_file_path = '/uploads/business_files/' . basename($business_file['name']);
