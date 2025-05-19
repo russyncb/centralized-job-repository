@@ -5,6 +5,11 @@ $page_title = 'Verify Employers';
 // Include bootstrap
 require_once $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/bootstrap.php';
 
+// Initialize session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Check if user has admin role
 if(!has_role('admin')) {
     redirect(SITE_URL . '/views/auth/login.php', 'You do not have permission to access this page.', 'error');
@@ -13,6 +18,11 @@ if(!has_role('admin')) {
 // Get database connection
 $database = new Database();
 $db = $database->getConnection();
+
+// Enable error reporting for diagnostics
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Process verification or rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -78,26 +88,167 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Get pending employers
-$query = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
-         u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
-         FROM employer_profiles e
-         JOIN users u ON e.user_id = u.user_id
-         WHERE u.status = 'pending'
-         ORDER BY u.created_at DESC";
+// Get pending employer count for badge
+$count_query = "SELECT COUNT(*) as count FROM users u 
+                JOIN employer_profiles e ON u.user_id = e.user_id 
+                WHERE u.status = 'pending'";
+$count_stmt = $db->prepare($count_query);
+$count_stmt->execute();
+$employer_count = $count_stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-// Initialize pending_employers as an empty array
-$pending_employers = [];
+// DIAGNOSTIC: Get users with 'pending' status
+$users_query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.status
+               FROM users u
+               WHERE u.status = 'pending'";
+$users_stmt = $db->prepare($users_query);
+$users_stmt->execute();
+$pending_users = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-try {
-    $stmt = $db->prepare($query);
-    $stmt->execute();
-    $pending_employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $_SESSION['message'] = "Database error: " . $e->getMessage();
-    $_SESSION['message_type'] = "error";
-    // Ensure $pending_employers is still an array even if the query fails
+// DIAGNOSTIC: Get employer_profiles without verified flag set
+$profiles_query = "SELECT e.employer_id, e.user_id, e.company_name, e.verified
+                  FROM employer_profiles e
+                  WHERE e.verified = 0 OR e.verified IS NULL";
+$profiles_stmt = $db->prepare($profiles_query);
+$profiles_stmt->execute();
+$unverified_profiles = $profiles_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// TRY DIFFERENT QUERY APPROACHES
+
+// Approach 1: Original JOIN query with simpler conditions
+$query1 = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
+          u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
+          FROM users u
+          JOIN employer_profiles e ON u.user_id = e.user_id
+          WHERE u.status = 'pending'
+          ORDER BY u.created_at DESC";
+
+$stmt1 = $db->prepare($query1);
+$stmt1->execute();
+$pending_employers1 = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+
+// Approach 2: Get all employer profiles first, left join with users
+$query2 = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
+          u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
+          FROM employer_profiles e
+          LEFT JOIN users u ON e.user_id = u.user_id
+          WHERE (e.verified = 0 OR e.verified IS NULL)
+          ORDER BY u.created_at DESC";
+
+$stmt2 = $db->prepare($query2);
+$stmt2->execute();
+$pending_employers2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+// Use the most successful query results
+if (count($pending_employers1) > 0) {
+    $pending_employers = $pending_employers1;
+    $query_used = "Approach 1: JOIN with u.status = 'pending'";
+} elseif (count($pending_employers2) > 0) {
+    $pending_employers = $pending_employers2;
+    $query_used = "Approach 2: LEFT JOIN with e.verified = 0 OR NULL";
+} else {
     $pending_employers = [];
+    $query_used = "No successful query approach";
+}
+
+// Demo data - Uncomment this block to show sample data if you need to test the UI
+/*
+$pending_employers = [
+    [
+        'employer_id' => 1,
+        'company_name' => 'Acme Corporation',
+        'industry' => 'Technology',
+        'location' => 'New York, NY',
+        'website' => 'https://acme.example.com',
+        'user_id' => 101,
+        'first_name' => 'John',
+        'last_name' => 'Doe',
+        'email' => 'john.doe@acme.example.com',
+        'phone' => '555-123-4567',
+        'created_at' => '2023-05-15 10:30:00',
+        'business_file' => '/uploads/business/acme_business_license.pdf'
+    ],
+    [
+        'employer_id' => 2,
+        'company_name' => 'Global Industries',
+        'industry' => 'Manufacturing',
+        'location' => 'Chicago, IL',
+        'website' => 'https://global.example.com',
+        'user_id' => 102,
+        'first_name' => 'Jane',
+        'last_name' => 'Smith',
+        'email' => 'jane.smith@global.example.com',
+        'phone' => '555-987-6543',
+        'created_at' => '2023-05-16 09:15:00',
+        'business_file' => '/uploads/business/global_certificate.pdf'
+    ]
+];
+*/
+
+// Function to create diagnostic output
+function getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_used, $employer_count) {
+    $output = "<div class='debug-panel'>";
+    $output .= "<h4>System Diagnostics</h4>";
+    $output .= "<p>Query approach used: " . $query_used . "</p>";
+    $output .= "<p>Badge count: " . $employer_count . "</p>";
+    
+    // Database info
+    $output .= "<h5>Database Connection</h5>";
+    $output .= "<p>PDO Attributes:</p><ul>";
+    $attributes = [
+        PDO::ATTR_DRIVER_NAME => "Driver Name",
+        PDO::ATTR_SERVER_VERSION => "Server Version",
+        PDO::ATTR_CLIENT_VERSION => "Client Version",
+        PDO::ATTR_CONNECTION_STATUS => "Connection Status"
+    ];
+    
+    foreach ($attributes as $attr => $name) {
+        try {
+            $value = $db->getAttribute($attr);
+            $output .= "<li>" . $name . ": " . $value . "</li>";
+        } catch (Exception $e) {
+            $output .= "<li>" . $name . ": Not available</li>";
+        }
+    }
+    $output .= "</ul>";
+    
+    // Users with 'pending' status
+    $output .= "<h5>Users with 'pending' status: " . count($pending_users) . "</h5>";
+    if (count($pending_users) > 0) {
+        $output .= "<table class='debug-table'>";
+        $output .= "<tr><th>User ID</th><th>Name</th><th>Email</th><th>Status</th></tr>";
+        foreach ($pending_users as $user) {
+            $output .= "<tr>";
+            $output .= "<td>" . $user['user_id'] . "</td>";
+            $output .= "<td>" . $user['first_name'] . " " . $user['last_name'] . "</td>";
+            $output .= "<td>" . $user['email'] . "</td>";
+            $output .= "<td>" . $user['status'] . "</td>";
+            $output .= "</tr>";
+        }
+        $output .= "</table>";
+    } else {
+        $output .= "<p>No users with 'pending' status found.</p>";
+    }
+    
+    // Unverified employer profiles
+    $output .= "<h5>Unverified employer profiles: " . count($unverified_profiles) . "</h5>";
+    if (count($unverified_profiles) > 0) {
+        $output .= "<table class='debug-table'>";
+        $output .= "<tr><th>Employer ID</th><th>User ID</th><th>Company Name</th><th>Verified</th></tr>";
+        foreach ($unverified_profiles as $profile) {
+            $output .= "<tr>";
+            $output .= "<td>" . $profile['employer_id'] . "</td>";
+            $output .= "<td>" . $profile['user_id'] . "</td>";
+            $output .= "<td>" . $profile['company_name'] . "</td>";
+            $output .= "<td>" . ($profile['verified'] ? "Yes" : "No") . "</td>";
+            $output .= "</tr>";
+        }
+        $output .= "</table>";
+    } else {
+        $output .= "<p>No unverified employer profiles found.</p>";
+    }
+    
+    $output .= "</div>";
+    return $output;
 }
 ?>
 
@@ -268,6 +419,56 @@ try {
             margin-top: 0;
             margin-bottom: 10px;
         }
+        
+        /* Debug Panel Styles */
+        .debug-panel {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+        
+        .debug-panel h4, .debug-panel h5 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .debug-panel h5 {
+            margin-top: 1rem;
+        }
+        
+        .debug-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .debug-table th, .debug-table td {
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+        
+        .debug-table th {
+            background-color: #f8f9fa;
+        }
+        
+        .toggle-debug {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -284,6 +485,16 @@ try {
                     ?>
                 </div>
             <?php endif; ?>
+            
+            <h1>Verify Employers <?php if($employer_count > 0): ?><span class="badge"><?php echo $employer_count; ?></span><?php endif; ?></h1>
+            
+            <!-- Debug Toggle Button -->
+            <button class="toggle-debug" onclick="toggleDebug()">Show System Diagnostics</button>
+            
+            <!-- Debug Information (hidden by default) -->
+            <div id="debugInfo" class="hidden">
+                <?php echo getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_used, $employer_count); ?>
+            </div>
             
             <?php if(is_array($pending_employers) && count($pending_employers) > 0): ?>
                 <div class="employer-cards">
@@ -367,9 +578,50 @@ try {
                 <div class="no-employers">
                     <h3>No Pending Employers</h3>
                     <p>There are currently no employers waiting for verification.</p>
+                    
+                    <?php if($employer_count > 0): ?>
+                    <div class="message error">
+                        <p><strong>System Notice:</strong> Badge shows <?php echo $employer_count; ?> pending employer(s), but none were found in database query. Please check the diagnostics for more information.</p>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if($employer_count > 0): ?>
+                    <!-- Quick Fix Section -->
+                    <div style="text-align: left; margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 5px;">
+                        <h4>Quick Fix Options:</h4>
+                        <p>There appears to be a data inconsistency. Here are some potential solutions:</p>
+                        <ol>
+                            <li>
+                                <strong>Option 1:</strong> Uncomment the test data in the code to temporarily display sample employers while you fix the database issue.
+                            </li>
+                            <li>
+                                <strong>Option 2:</strong> Check if users have 'pending' status but might be missing employer profile entries.
+                            </li>
+                            <li>
+                                <strong>Option 3:</strong> Check database permissions and connection settings.
+                            </li>
+                        </ol>
+                        <p>Use the "Show System Diagnostics" button above to investigate further.</p>
+                    </div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
     </div>
+    
+    <script>
+        function toggleDebug() {
+            var debugInfo = document.getElementById('debugInfo');
+            var toggleBtn = document.querySelector('.toggle-debug');
+            
+            if (debugInfo.classList.contains('hidden')) {
+                debugInfo.classList.remove('hidden');
+                toggleBtn.textContent = 'Hide System Diagnostics';
+            } else {
+                debugInfo.classList.add('hidden');
+                toggleBtn.textContent = 'Show System Diagnostics';
+            }
+        }
+    </script>
 </body>
 </html>

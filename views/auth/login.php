@@ -8,6 +8,11 @@ $email = $password = "";
 $error = "";
 $success = "";
 
+// Check if there's a success message from registration
+if(isset($_GET['success'])) {
+    $success = $_GET['success'];
+}
+
 // Check if already logged in
 if(AuthController::isLoggedIn()) {
     // Redirect based on role
@@ -142,6 +147,21 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             background-color: #004494;
         }
         
+        .contact-admin {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .contact-admin a {
+            color: #0056b3;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .contact-admin a:hover {
+            text-decoration: underline;
+        }
+        
         .form-footer {
             text-align: center;
             margin-top: 25px;
@@ -222,6 +242,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             
             <div class="form-group">
                 <button type="submit" name="login" class="btn-login">Login</button>
+            </div>
+            
+            <div class="contact-admin">
+                <a href="mailto:admin@shasha.com">Contact Admin</a>
             </div>
             
             <div class="form-footer">

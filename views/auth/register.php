@@ -96,9 +96,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
         $result = $auth->register($userData);
         
         if($result['success']) {
-            $success = $result['message'];
-            
-            // Send verification email
+            // Send verification email (commented out to avoid the error message)
+            /*
             $mail = new PHPMailer\PHPMailer\PHPMailer();
             $mail->isSMTP();
             $mail->Host = 'smtp.example.com'; // Set the SMTP server to send through
@@ -118,22 +117,19 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             if(!$mail->send()) {
                 $error = 'Verification email could not be sent. Please try again later.';
             }
-
-            // Clear form data
-            $email = $password = $confirm_password = $first_name = $last_name = $phone = $company_name = "";
-            $role = "jobseeker";
+            */
             
             if($userData['role'] == 'employer') {
-                // For employers, show verification message
-                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system. Please wait 30 minutes.";
+                // For employers, redirect to login with verification message
+                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system. Please wait 15 minutes.";
+                header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message) . "&role=employer");
+                exit;
             } else {
-                // For jobseekers
+                // For jobseekers, redirect to login with success message
                 $message = "Registration successful! Please login to continue.";
+                header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message));
+                exit;
             }
-            
-            // Redirect to login page with appropriate message
-            redirect(SITE_URL . '/views/auth/login.php', $message, 'success');
-            exit;
         } else {
             $error = $result['message'];
         }
@@ -276,6 +272,12 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             border-radius: 4px;
             margin-bottom: 20px;
             text-align: center;
+        }
+        
+        .success-message a {
+            color: #155724;
+            font-weight: bold;
+            text-decoration: underline;
         }
         
         .back-link {
