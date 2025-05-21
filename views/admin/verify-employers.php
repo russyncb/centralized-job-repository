@@ -5,11 +5,6 @@ $page_title = 'Verify Employers';
 // Include bootstrap
 require_once $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/bootstrap.php';
 
-// Initialize session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Check if user has admin role
 if(!has_role('admin')) {
     redirect(SITE_URL . '/views/auth/login.php', 'You do not have permission to access this page.', 'error');
@@ -18,11 +13,6 @@ if(!has_role('admin')) {
 // Get database connection
 $database = new Database();
 $db = $database->getConnection();
-
-// Enable error reporting for diagnostics
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 // Process verification or rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -83,173 +73,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // If there's a next_id parameter, redirect to that employer
+    if(isset($_POST['next_id']) && !empty($_POST['next_id'])) {
+        header("Location: " . SITE_URL . "/views/admin/verify-employers.php?employer_id=" . $_POST['next_id']);
+        exit;
+    }
+    
     // Redirect to refresh the page
     header("Location: " . SITE_URL . "/views/admin/verify-employers.php");
     exit;
 }
 
-// Get pending employer count for badge
-$count_query = "SELECT COUNT(*) as count FROM users u 
-                JOIN employer_profiles e ON u.user_id = e.user_id 
-                WHERE u.status = 'pending'";
-$count_stmt = $db->prepare($count_query);
-$count_stmt->execute();
-$employer_count = $count_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+// Handle search parameters
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$status = isset($_GET['status']) ? trim($_GET['status']) : 'pending';
 
-// DIAGNOSTIC: Get users with 'pending' status
-$users_query = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.status
-               FROM users u
-               WHERE u.status = 'pending'";
-$users_stmt = $db->prepare($users_query);
-$users_stmt->execute();
-$pending_users = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get employer_id from GET parameter for individual view if provided
+$current_employer_id = isset($_GET['employer_id']) ? (int)$_GET['employer_id'] : 0;
 
-// DIAGNOSTIC: Get employer_profiles without verified flag set
-$profiles_query = "SELECT e.employer_id, e.user_id, e.company_name, e.verified
-                  FROM employer_profiles e
-                  WHERE e.verified = 0 OR e.verified IS NULL";
-$profiles_stmt = $db->prepare($profiles_query);
-$profiles_stmt->execute();
-$unverified_profiles = $profiles_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Debug: Check the uploads directories exist
+$uploads_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_files/';
+$uploads_dir_exists = is_dir($uploads_dir);
+$uploads_dir_writable = is_writable($uploads_dir);
 
-// TRY DIFFERENT QUERY APPROACHES
+// Check for alternate folder (singular vs plural)
+$alternate_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_file/';
+$alternate_dir_exists = is_dir($alternate_dir);
 
-// Approach 1: Original JOIN query with simpler conditions
-$query1 = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
-          u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
-          FROM users u
-          JOIN employer_profiles e ON u.user_id = e.user_id
-          WHERE u.status = 'pending'
-          ORDER BY u.created_at DESC";
+// Debug: List any files in the upload directories
+$files_in_dir = [];
+if($uploads_dir_exists) {
+    $files_in_dir = scandir($uploads_dir);
+    // Remove . and .. from the list
+    $files_in_dir = array_diff($files_in_dir, ['.', '..']);
+}
 
-$stmt1 = $db->prepare($query1);
-$stmt1->execute();
-$pending_employers1 = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+$files_in_alternate = [];
+if($alternate_dir_exists) {
+    $files_in_alternate = scandir($alternate_dir);
+    // Remove . and .. from the list
+    $files_in_alternate = array_diff($files_in_alternate, ['.', '..']);
+}
 
-// Approach 2: Get all employer profiles first, left join with users
-$query2 = "SELECT e.employer_id, e.company_name, e.industry, e.location, e.website, 
-          u.user_id, u.first_name, u.last_name, u.email, u.phone, u.created_at, e.business_file
-          FROM employer_profiles e
-          LEFT JOIN users u ON e.user_id = u.user_id
-          WHERE (e.verified = 0 OR e.verified IS NULL)
-          ORDER BY u.created_at DESC";
+// Direct database query to check what's in the business_file column
+$check_query = "SELECT employer_id, company_name, business_file FROM employer_profiles WHERE business_file IS NOT NULL";
+$check_stmt = $db->prepare($check_query);
+$check_stmt->execute();
+$business_files_in_db = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt2 = $db->prepare($query2);
-$stmt2->execute();
-$pending_employers2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-
-// Use the most successful query results
-if (count($pending_employers1) > 0) {
-    $pending_employers = $pending_employers1;
-    $query_used = "Approach 1: JOIN with u.status = 'pending'";
-} elseif (count($pending_employers2) > 0) {
-    $pending_employers = $pending_employers2;
-    $query_used = "Approach 2: LEFT JOIN with e.verified = 0 OR NULL";
+// Build query based on whether we're viewing a specific employer or list
+if($current_employer_id > 0) {
+    // Get a specific employer
+    $query = "SELECT e.*, u.user_id, u.first_name, u.last_name, u.email, u.phone, u.status, u.created_at
+             FROM employer_profiles e
+             JOIN users u ON e.user_id = u.user_id
+             WHERE u.role = 'employer' AND e.employer_id = :employer_id";
+    
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':employer_id', $current_employer_id);
 } else {
-    $pending_employers = [];
-    $query_used = "No successful query approach";
+    // Get all employers matching the criteria
+    $query = "SELECT e.*, u.user_id, u.first_name, u.last_name, u.email, u.phone, u.status, u.created_at
+             FROM employer_profiles e
+             JOIN users u ON e.user_id = u.user_id
+             WHERE u.role = 'employer'";
+    
+    // Add status filter if not viewing all
+    if($status !== 'all') {
+        $query .= " AND u.status = :status";
+    }
+    
+    // Add search condition if search is not empty
+    if(!empty($search)) {
+        $query .= " AND (e.company_name LIKE :search 
+                   OR u.first_name LIKE :search 
+                   OR u.last_name LIKE :search 
+                   OR u.email LIKE :search 
+                   OR e.industry LIKE :search 
+                   OR e.location LIKE :search)";
+    }
+    
+    $query .= " ORDER BY u.created_at DESC";
+    
+    $stmt = $db->prepare($query);
+    
+    // Bind status parameter if needed
+    if($status !== 'all') {
+        $stmt->bindParam(':status', $status);
+    }
+    
+    // Bind search parameter if needed
+    if(!empty($search)) {
+        $searchParam = "%{$search}%";
+        $stmt->bindParam(':search', $searchParam);
+    }
 }
 
-// Demo data - Uncomment this block to show sample data if you need to test the UI
-/*
-$pending_employers = [
-    [
-        'employer_id' => 1,
-        'company_name' => 'Acme Corporation',
-        'industry' => 'Technology',
-        'location' => 'New York, NY',
-        'website' => 'https://acme.example.com',
-        'user_id' => 101,
-        'first_name' => 'John',
-        'last_name' => 'Doe',
-        'email' => 'john.doe@acme.example.com',
-        'phone' => '555-123-4567',
-        'created_at' => '2023-05-15 10:30:00',
-        'business_file' => '/uploads/business/acme_business_license.pdf'
-    ],
-    [
-        'employer_id' => 2,
-        'company_name' => 'Global Industries',
-        'industry' => 'Manufacturing',
-        'location' => 'Chicago, IL',
-        'website' => 'https://global.example.com',
-        'user_id' => 102,
-        'first_name' => 'Jane',
-        'last_name' => 'Smith',
-        'email' => 'jane.smith@global.example.com',
-        'phone' => '555-987-6543',
-        'created_at' => '2023-05-16 09:15:00',
-        'business_file' => '/uploads/business/global_certificate.pdf'
-    ]
-];
-*/
+$stmt->execute();
+$employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Function to create diagnostic output
-function getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_used, $employer_count) {
-    $output = "<div class='debug-panel'>";
-    $output .= "<h4>System Diagnostics</h4>";
-    $output .= "<p>Query approach used: " . $query_used . "</p>";
-    $output .= "<p>Badge count: " . $employer_count . "</p>";
+// Filter to just pending employers for the main display
+$pending_employers = array_filter($employers, function($employer) {
+    return $employer['status'] === 'pending';
+});
+
+// If viewing a specific employer, get previous and next employer IDs
+$prev_id = $next_id = 0;
+if($current_employer_id > 0 && count($pending_employers) > 0) {
+    // Get all employer IDs in order for navigation
+    $query_all_ids = "SELECT e.employer_id
+                     FROM employer_profiles e
+                     JOIN users u ON e.user_id = u.user_id
+                     WHERE u.status = 'pending' AND u.role = 'employer'
+                     ORDER BY u.created_at DESC";
+    $stmt_all_ids = $db->prepare($query_all_ids);
+    $stmt_all_ids->execute();
+    $all_ids = $stmt_all_ids->fetchAll(PDO::FETCH_COLUMN);
     
-    // Database info
-    $output .= "<h5>Database Connection</h5>";
-    $output .= "<p>PDO Attributes:</p><ul>";
-    $attributes = [
-        PDO::ATTR_DRIVER_NAME => "Driver Name",
-        PDO::ATTR_SERVER_VERSION => "Server Version",
-        PDO::ATTR_CLIENT_VERSION => "Client Version",
-        PDO::ATTR_CONNECTION_STATUS => "Connection Status"
-    ];
+    // Find current position in the list
+    $current_position = array_search($current_employer_id, $all_ids);
     
-    foreach ($attributes as $attr => $name) {
-        try {
-            $value = $db->getAttribute($attr);
-            $output .= "<li>" . $name . ": " . $value . "</li>";
-        } catch (Exception $e) {
-            $output .= "<li>" . $name . ": Not available</li>";
-        }
+    // Get previous and next IDs if they exist
+    if($current_position !== false) {
+        $prev_id = ($current_position > 0) ? $all_ids[$current_position - 1] : 0;
+        $next_id = (isset($all_ids[$current_position + 1])) ? $all_ids[$current_position + 1] : 0;
     }
-    $output .= "</ul>";
-    
-    // Users with 'pending' status
-    $output .= "<h5>Users with 'pending' status: " . count($pending_users) . "</h5>";
-    if (count($pending_users) > 0) {
-        $output .= "<table class='debug-table'>";
-        $output .= "<tr><th>User ID</th><th>Name</th><th>Email</th><th>Status</th></tr>";
-        foreach ($pending_users as $user) {
-            $output .= "<tr>";
-            $output .= "<td>" . $user['user_id'] . "</td>";
-            $output .= "<td>" . $user['first_name'] . " " . $user['last_name'] . "</td>";
-            $output .= "<td>" . $user['email'] . "</td>";
-            $output .= "<td>" . $user['status'] . "</td>";
-            $output .= "</tr>";
-        }
-        $output .= "</table>";
-    } else {
-        $output .= "<p>No users with 'pending' status found.</p>";
-    }
-    
-    // Unverified employer profiles
-    $output .= "<h5>Unverified employer profiles: " . count($unverified_profiles) . "</h5>";
-    if (count($unverified_profiles) > 0) {
-        $output .= "<table class='debug-table'>";
-        $output .= "<tr><th>Employer ID</th><th>User ID</th><th>Company Name</th><th>Verified</th></tr>";
-        foreach ($unverified_profiles as $profile) {
-            $output .= "<tr>";
-            $output .= "<td>" . $profile['employer_id'] . "</td>";
-            $output .= "<td>" . $profile['user_id'] . "</td>";
-            $output .= "<td>" . $profile['company_name'] . "</td>";
-            $output .= "<td>" . ($profile['verified'] ? "Yes" : "No") . "</td>";
-            $output .= "</tr>";
-        }
-        $output .= "</table>";
-    } else {
-        $output .= "<p>No unverified employer profiles found.</p>";
-    }
-    
-    $output .= "</div>";
-    return $output;
 }
+
+// Get total pending count for the badge
+$query_pending = "SELECT COUNT(*) as count FROM users WHERE role = 'employer' AND status = 'pending'";
+$stmt_pending = $db->prepare($query_pending);
+$stmt_pending->execute();
+$pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
 ?>
 
 <!DOCTYPE html>
@@ -266,216 +221,720 @@ function getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_use
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            min-height: 100vh;
-            width: 100%;
-            overflow-x: hidden;
-            box-sizing: border-box;
         }
         
         .admin-container {
             display: flex;
             min-height: 100vh;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
         }
         
-        .admin-content {
-            flex: 1;
-            padding: 105px 30px 30px;
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            background-color: #f8f9fa;
-            width: calc(100% - 270px);
-            max-width: 100%;
-            box-sizing: border-box;
+        .sidebar {
+            width: 270px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
             overflow-y: auto;
+            z-index: 1000;
         }
         
-        .sidebar.collapsed ~ .admin-content {
-            width: calc(100% - 80px);
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
-        @media (max-width: 768px) {
-            .admin-content {
-                width: calc(100% - 80px);
-            }
+        .sidebar-header h3 {
+            color: white;
+            font-size: 1.3rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
+        .sidebar-logo {
+            background: #fff;
+            color: #1a3b5d;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            gap: 12px;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: #FFC107;
+        }
+        
+        .sidebar-menu a i {
+            font-size: 1.2rem;
+            width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .badge {
+            background-color: #dc3545;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 20px 30px;
+            margin-left: 270px;
+        }
+        
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        /* New Search Bar Styles */
+        .filter-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.15s ease-in-out;
+        }
+        
+        .filter-input:focus {
+            border-color: #1557b0;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(21, 87, 176, 0.25);
+        }
+        
+        .filter-select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: #fff;
+            transition: border-color 0.15s ease-in-out;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px 12px;
+        }
+        
+        .filter-select:focus {
+            border-color: #1557b0;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(21, 87, 176, 0.25);
+        }
+        
+        .filter-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-apply {
+            background-color: #1557b0;
+            color: white;
+            min-width: 120px;
+        }
+        
+        .btn-apply:hover {
+            background-color: #12468e;
+        }
+        
+        .btn-reset {
+            background-color: #6c757d;
+            color: white;
+            min-width: 120px;
+        }
+        
+        .btn-reset:hover {
+            background-color: #5a6268;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Message Styles */
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        /* Debug Info */
+        .debug-info {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .debug-section {
+            margin-bottom: 15px;
+        }
+        
+        .debug-section h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .debug-section ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .debug-section pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        /* Employer Card Styles - Collapsible */
         .employer-cards {
             margin-top: 20px;
-            width: 100%;
-            box-sizing: border-box;
         }
         
         .employer-card {
             background-color: white;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            box-sizing: border-box;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .employer-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
         }
         
         .employer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-            width: 100%;
-            box-sizing: border-box;
+            padding: 18px 25px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eef2f7;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
         
-        .employer-name h3 {
-            margin: 0;
+        .employer-header:hover {
+            background-color: #e9ecef;
+        }
+        
+        .employer-name {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .company-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #1557b0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
             font-size: 1.2rem;
+        }
+        
+        .company-info h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #1a3b5d;
+            font-weight: 600;
+        }
+        
+        .company-info p {
+            margin: 5px 0 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-icon {
+            font-size: 1.5rem;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+        
+        .employer-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .employer-content.open {
+            padding: 25px;
+            max-height: 1000px; /* Large enough to fit content */
         }
         
         .employer-details {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            box-sizing: border-box;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
         }
         
         .detail-group {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .detail-group label {
             display: block;
             font-weight: 500;
-            margin-bottom: 5px;
-            color: #666;
+            margin-bottom: 6px;
+            color: #4a5568;
             font-size: 0.9rem;
         }
         
         .detail-group span {
             font-size: 1rem;
+            color: #2d3748;
+            word-break: break-word;
+        }
+        
+        .detail-group span a {
+            color: #1557b0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .detail-group span a:hover {
+            color: #0f4c8a;
+            text-decoration: underline;
         }
         
         .employer-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            width: 100%;
-            box-sizing: border-box;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .btn-verify {
             background-color: #28a745;
             color: white;
+            box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-verify:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
         }
         
         .btn-reject {
             background-color: #dc3545;
             color: white;
+            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
         }
         
-        .badge {
-            display: inline-block;
-            background-color: #dc3545;
+        .btn-reject:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-document {
+            background-color: #17a2b8;
             color: white;
-            font-size: 0.8rem;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 5px;
+            box-shadow: 0 2px 5px rgba(23, 162, 184, 0.3);
         }
         
-        .message {
-            padding: 15px;
+        .btn-document:hover {
+            background-color: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(23, 162, 184, 0.4);
+        }
+        
+        .btn-navigate {
+            background-color: #6c757d;
+            color: white;
+            box-shadow: 0 2px 5px rgba(108, 117, 125, 0.3);
+        }
+        
+        .btn-navigate:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
+        }
+        
+        .btn-navigate.disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            border-radius: 12px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
         }
         
         .no-employers {
             text-align: center;
             background-color: white;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            padding: 50px 20px;
-            width: 100%;
-            box-sizing: border-box;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            padding: 60px 30px;
+            margin-top: 20px;
         }
         
         .no-employers h3 {
             margin-top: 0;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            color: #1a3b5d;
+            font-size: 1.8rem;
         }
         
-        /* Debug Panel Styles */
-        .debug-panel {
-            background-color: #f8f9fa;
+        .no-employers p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+        
+        /* Quick Actions for Each Card */
+        .quick-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quick-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
             border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            overflow-x: auto;
-        }
-        
-        .debug-panel h4, .debug-panel h5 {
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-        }
-        
-        .debug-panel h5 {
-            margin-top: 1rem;
-        }
-        
-        .debug-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-        
-        .debug-table th, .debug-table td {
-            padding: 0.5rem;
-            border: 1px solid #dee2e6;
-            text-align: left;
-        }
-        
-        .debug-table th {
-            background-color: #f8f9fa;
-        }
-        
-        .toggle-debug {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
+            color: #6c757d;
+            font-size: 1rem;
             cursor: pointer;
-            margin-bottom: 10px;
+            transition: all 0.3s ease;
         }
         
-        .hidden {
+        .quick-action-btn:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        
+        .quick-action-view {
+            color: #1557b0;
+        }
+        
+        .quick-action-approve {
+            color: #28a745;
+        }
+        
+        .quick-action-reject {
+            color: #dc3545;
+        }
+        
+        .rotated {
+            transform: rotate(180deg);
+        }
+        
+        /* Modal Styles */
+        .modal {
             display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 900px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            color: #1a3b5d;
+            margin: 0;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .modal-body {
+            padding: 20px 0;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                overflow: hidden;
+            }
+            
+            .sidebar-header h3 span {
+                display: none;
+            }
+            
+            .sidebar-menu a span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .employer-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .employer-actions {
+                flex-direction: column;
+            }
+            
+            .employer-actions form {
+                width: 100%;
+            }
+            
+            .employer-actions button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .filter-row {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <?php include 'admin-sidebar.php'; ?>
+        <!-- Simplified sidebar that doesn't rely on admin-sidebar.php -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>
+                    <div class="sidebar-logo">S</div>
+                    <span>ShaSha Admin</span>
+                </h3>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/dashboard.php">
+                        <i>📊</i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="active">
+                        <i>✓</i>
+                        <span>Verify Employers</span>
+                        <?php if($pending_count > 0): ?>
+                            <span class="badge"><?php echo $pending_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-users.php">
+                        <i>👥</i>
+                        <span>Users</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/manage-jobs.php">
+                        <i>💼</i>
+                        <span>Jobs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/queries.php">
+                        <i>💬</i>
+                        <span>Queries</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/analytics.php">
+                        <i>📈</i>
+                        <span>Analytics</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/admin/settings.php">
+                        <i>⚙️</i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo SITE_URL; ?>/views/auth/logout.php">
+                        <i>🚪</i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
         
-        <div class="admin-content">
+        <div class="main-content">
+            <div class="top-bar">
+                <h1><?php echo $page_title; ?></h1>
+                <div class="user-info">
+                    Welcome, <?php echo $_SESSION['first_name'] . ' ' . $_SESSION['last_name']; ?>
+                </div>
+            </div>
+            
             <?php if(isset($_SESSION['message'])): ?>
                 <div class="message <?php echo $_SESSION['message_type']; ?>">
                     <?php 
@@ -486,142 +945,425 @@ function getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_use
                 </div>
             <?php endif; ?>
             
-            <h1>Verify Employers <?php if($employer_count > 0): ?><span class="badge"><?php echo $employer_count; ?></span><?php endif; ?></h1>
-            
-            <!-- Debug Toggle Button -->
-            <button class="toggle-debug" onclick="toggleDebug()">Show System Diagnostics</button>
-            
-            <!-- Debug Information (hidden by default) -->
-            <div id="debugInfo" class="hidden">
-                <?php echo getDiagnosticInfo($db, $pending_users, $unverified_profiles, $query_used, $employer_count); ?>
+            <!-- Debug info for business file upload directory -->
+            <div class="debug-info">
+                <h3>Debugging Information</h3>
+                
+                <div class="debug-section">
+                    <h4>Upload Directories</h4>
+                    <ul>
+                        <li>Main uploads directory (<?php echo $uploads_dir; ?>): <?php echo $uploads_dir_exists ? '<span style="color: green;">Exists</span>' : '<span style="color: red;">Does not exist</span>'; ?></li>
+                        <?php if($uploads_dir_exists): ?>
+                            <li>Permissions: <?php echo $uploads_dir_writable ? '<span style="color: green;">Writable</span>' : '<span style="color: red;">Not writable</span>'; ?></li>
+                        <?php endif; ?>
+                        <li>Alternate directory (<?php echo $alternate_dir; ?>): <?php echo $alternate_dir_exists ? '<span style="color: green;">Exists</span>' : '<span style="color: red;">Does not exist</span>'; ?></li>
+                    </ul>
+                </div>
+                
+                <div class="debug-section">
+                    <h4>Files in Upload Directories</h4>
+                    <?php if(count($files_in_dir) > 0): ?>
+                        <p>Files in main directory:</p>
+                        <ul>
+                            <?php foreach($files_in_dir as $file): ?>
+                                <li><?php echo htmlspecialchars($file); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>No files found in main upload directory.</p>
+                    <?php endif; ?>
+                    
+                    <?php if(count($files_in_alternate) > 0): ?>
+                        <p>Files in alternate directory:</p>
+                        <ul>
+                            <?php foreach($files_in_alternate as $file): ?>
+                                <li><?php echo htmlspecialchars($file); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="debug-section">
+                    <h4>Business Files in Database</h4>
+                    <?php if(count($business_files_in_db) > 0): ?>
+                        <ul>
+                            <?php foreach($business_files_in_db as $entry): ?>
+                                <li>
+                                    Company: <?php echo htmlspecialchars($entry['company_name']); ?><br>
+                                    File path: <?php echo htmlspecialchars($entry['business_file']); ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>No business file paths found in the database.</p>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="debug-section">
+                    <h4>How to Fix</h4>
+                    <p>Based on the info above:</p>
+                    <ol>
+                        <li>Make sure the <code>/uploads/business_files/</code> directory exists (plural).</li>
+                        <li>Ensure it has proper write permissions (755 or higher).</li>
+                        <li>Check if files are being stored with the correct path in the database.</li>
+                        <li>If files exist in the alternate folder, move them to the correct one.</li>
+                    </ol>
+                    <p>After fixing these issues, try registering a new employer or manually update an existing entry.</p>
+                </div>
             </div>
             
-            <?php if(is_array($pending_employers) && count($pending_employers) > 0): ?>
+            <!-- New Search & Filter Interface -->
+            <div class="filter-container">
+                <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="get">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="search">Search</label>
+                            <input type="text" id="search" name="search" class="filter-input" placeholder="Company name, email or contact person" value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="status">Status</label>
+                            <select id="status" name="status" class="filter-select">
+                                <option value="pending" <?php if($status == 'pending') echo 'selected'; ?>>Pending</option>
+                                <option value="active" <?php if($status == 'active') echo 'selected'; ?>>Active</option>
+                                <option value="rejected" <?php if($status == 'rejected') echo 'selected'; ?>>Rejected</option>
+                                <option value="all" <?php if($status == 'all') echo 'selected'; ?>>All Statuses</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-buttons">
+                            <button type="submit" class="filter-button btn-apply">Apply Filters</button>
+                            <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="filter-button btn-reset">Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <?php if(count($pending_employers) > 0): ?>
+                <!-- If viewing a specific employer, show navigation controls -->
+                <?php if($current_employer_id > 0): ?>
+                    <div class="navigation-controls">
+                        <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="btn btn-navigate">
+                            <i>←</i> Back to List
+                        </a>
+                        <div>
+                            <?php if($prev_id > 0): ?>
+                                <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php?employer_id=<?php echo $prev_id; ?>" class="btn btn-navigate">
+                                    <i>←</i> Previous
+                                </a>
+                            <?php else: ?>
+                                <button class="btn btn-navigate disabled">
+                                    <i>←</i> Previous
+                                </button>
+                            <?php endif; ?>
+                            
+                            <?php if($next_id > 0): ?>
+                                <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php?employer_id=<?php echo $next_id; ?>" class="btn btn-navigate">
+                                    Next <i>→</i>
+                                </a>
+                            <?php else: ?>
+                                <button class="btn btn-navigate disabled">
+                                    Next <i>→</i>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="employer-cards">
                     <?php foreach($pending_employers as $employer): ?>
-                        <div class="employer-card">
-                            <div class="employer-header">
+                        <?php 
+                            $employer_id = $employer['employer_id'];
+                            // Get first letter of company name for icon
+                            $company_initial = strtoupper(substr($employer['company_name'], 0, 1));
+                            // Get formatted date
+                            $application_date = date('M d, Y', strtotime($employer['created_at']));
+                            // Determine if this card should be expanded (if it's the current view)
+                            $is_expanded = ($current_employer_id > 0 && $current_employer_id == $employer_id);
+                            // Business file information
+                            $has_business_file = !empty($employer['business_file']);
+                            $business_file_path = $has_business_file ? $employer['business_file'] : '';
+                            
+                            // Fix for file path if it's in the alternate directory
+                            if($has_business_file && !file_exists($_SERVER['DOCUMENT_ROOT'] . $business_file_path) && $alternate_dir_exists) {
+                                $alternate_path = str_replace('/uploads/business_files/', '/uploads/business_file/', $business_file_path);
+                                if(file_exists($_SERVER['DOCUMENT_ROOT'] . $alternate_path)) {
+                                    $business_file_path = $alternate_path;
+                                }
+                            }
+                        ?>
+                        <div class="employer-card" data-employer-id="<?php echo $employer_id; ?>">
+                            <div class="employer-header" onclick="toggleEmployerCard(<?php echo $employer_id; ?>)">
                                 <div class="employer-name">
-                                    <h3><?php echo htmlspecialchars($employer['company_name']); ?></h3>
-                                    <p>Application date: <?php echo date('M d, Y', strtotime($employer['created_at'])); ?></p>
+                                    <div class="company-icon"><?php echo $company_initial; ?></div>
+                                    <div class="company-info">
+                                        <h3><?php echo htmlspecialchars($employer['company_name']); ?></h3>
+                                        <p>Application date: <?php echo $application_date; ?></p>
+                                    </div>
+                                </div>
+                                <div class="quick-actions">
+                                    <?php if($has_business_file): ?>
+                                        <button type="button" class="quick-action-btn quick-action-view" title="View Document" 
+                                                onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>'); event.stopPropagation();">
+                                            📄
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" class="quick-action-btn" title="No Document Available" disabled>
+                                            ❌📄
+                                        </button>
+                                    <?php endif; ?>
+                                    <button type="button" class="quick-action-btn quick-action-reject" title="Reject" 
+                                            onclick="if(confirm('Are you sure you want to reject this employer?')) { document.getElementById('reject-form-<?php echo $employer_id; ?>').submit(); }; event.stopPropagation();">
+                                        ❌
+                                    </button>
+                                    <button type="button" class="quick-action-btn quick-action-approve" title="Approve" 
+                                            onclick="document.getElementById('verify-form-<?php echo $employer_id; ?>').submit(); event.stopPropagation();">
+                                        ✓
+                                    </button>
+                                    <div class="toggle-icon <?php echo $is_expanded ? 'rotated' : ''; ?>">▼</div>
                                 </div>
                             </div>
                             
-                            <div class="employer-details">
-                                <div>
-                                    <div class="detail-group">
-                                        <label>Contact Person</label>
-                                        <span><?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?></span>
+                            <div class="employer-content <?php echo $is_expanded ? 'open' : ''; ?>">
+                                <div class="employer-details">
+                                    <div>
+                                        <div class="detail-group">
+                                            <label>Contact Person</label>
+                                            <span><?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Email</label>
+                                            <span><?php echo htmlspecialchars($employer['email']); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Phone</label>
+                                            <span><?php echo htmlspecialchars($employer['phone'] ?? 'Not provided'); ?></span>
+                                        </div>
                                     </div>
                                     
-                                    <div class="detail-group">
-                                        <label>Email</label>
-                                        <span><?php echo htmlspecialchars($employer['email']); ?></span>
-                                    </div>
-                                    
-                                    <div class="detail-group">
-                                        <label>Phone</label>
-                                        <span><?php echo htmlspecialchars($employer['phone'] ?? 'Not provided'); ?></span>
+                                    <div>
+                                        <div class="detail-group">
+                                            <label>Industry</label>
+                                            <span><?php echo htmlspecialchars($employer['industry'] ?? 'Not provided'); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Location</label>
+                                            <span><?php echo htmlspecialchars($employer['location'] ?? 'Not provided'); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Website</label>
+                                            <span>
+                                                <?php if(!empty($employer['website'])): ?>
+                                                    <a href="<?php echo htmlspecialchars($employer['website']); ?>" target="_blank"><?php echo htmlspecialchars($employer['website']); ?></a>
+                                                <?php else: ?>
+                                                    Not provided
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Business Document</label>
+                                            <span>
+                                                <?php if($has_business_file): ?>
+                                                    <a href="#" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>'); return false;">View Document</a>
+                                                    <p style="margin-top: 5px; font-size: 0.8rem; color: #6c757d;">(File path: <?php echo htmlspecialchars($business_file_path); ?>)</p>
+                                                <?php else: ?>
+                                                    Not provided
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div>
-                                    <div class="detail-group">
-                                        <label>Industry</label>
-                                        <span><?php echo htmlspecialchars($employer['industry'] ?? 'Not provided'); ?></span>
-                                    </div>
+                                <div class="employer-actions">
+                                    <?php if($has_business_file): ?>
+                                        <button type="button" class="btn btn-document" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>')">
+                                            <i>📄</i> View Document
+                                        </button>
+                                    <?php endif; ?>
                                     
-                                    <div class="detail-group">
-                                        <label>Location</label>
-                                        <span><?php echo htmlspecialchars($employer['location'] ?? 'Not provided'); ?></span>
-                                    </div>
+                                    <form id="reject-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
+                                        <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
+                                        <?php if($next_id > 0): ?>
+                                            <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
+                                        <?php endif; ?>
+                                        <button type="submit" name="reject" class="btn btn-reject">Reject</button>
+                                    </form>
                                     
-                                    <div class="detail-group">
-                                        <label>Website</label>
-                                        <span>
-                                            <?php if(!empty($employer['website'])): ?>
-                                                <a href="<?php echo htmlspecialchars($employer['website']); ?>" target="_blank"><?php echo htmlspecialchars($employer['website']); ?></a>
-                                            <?php else: ?>
-                                                Not provided
-                                            <?php endif; ?>
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="detail-group">
-                                        <label>Business Document</label>
-                                        <span>
-                                            <?php if(!empty($employer['business_file'])): ?>
-                                                <a href="<?php echo SITE_URL . $employer['business_file']; ?>" target="_blank">View Document</a>
-                                            <?php else: ?>
-                                                Not provided
-                                            <?php endif; ?>
-                                        </span>
-                                    </div>
+                                    <form id="verify-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
+                                        <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
+                                        <?php if($next_id > 0): ?>
+                                            <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
+                                        <?php endif; ?>
+                                        <button type="submit" name="verify" class="btn btn-verify">Verify Employer</button>
+                                    </form>
                                 </div>
-                            </div>
-                            
-                            <div class="employer-actions">
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="employer_id" value="<?php echo $employer['employer_id']; ?>">
-                                    <button type="submit" name="reject" class="btn btn-reject" onclick="return confirm('Are you sure you want to reject this employer?')">Reject</button>
-                                </form>
-                                
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="employer_id" value="<?php echo $employer['employer_id']; ?>">
-                                    <button type="submit" name="verify" class="btn btn-verify">Verify Employer</button>
-                                </form>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
                 <div class="no-employers">
-                    <h3>No Pending Employers</h3>
-                    <p>There are currently no employers waiting for verification.</p>
-                    
-                    <?php if($employer_count > 0): ?>
-                    <div class="message error">
-                        <p><strong>System Notice:</strong> Badge shows <?php echo $employer_count; ?> pending employer(s), but none were found in database query. Please check the diagnostics for more information.</p>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php if($employer_count > 0): ?>
-                    <!-- Quick Fix Section -->
-                    <div style="text-align: left; margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 5px;">
-                        <h4>Quick Fix Options:</h4>
-                        <p>There appears to be a data inconsistency. Here are some potential solutions:</p>
-                        <ol>
-                            <li>
-                                <strong>Option 1:</strong> Uncomment the test data in the code to temporarily display sample employers while you fix the database issue.
-                            </li>
-                            <li>
-                                <strong>Option 2:</strong> Check if users have 'pending' status but might be missing employer profile entries.
-                            </li>
-                            <li>
-                                <strong>Option 3:</strong> Check database permissions and connection settings.
-                            </li>
-                        </ol>
-                        <p>Use the "Show System Diagnostics" button above to investigate further.</p>
-                    </div>
+                    <?php if(!empty($search) || $status != 'pending'): ?>
+                        <h3>No Matching Employers</h3>
+                        <p>No employers match your search criteria. <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php">Clear filters</a></p>
+                    <?php else: ?>
+                        <h3>No Pending Employers</h3>
+                        <p>There are currently no employers waiting for verification.</p>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
     </div>
     
+    <!-- Document Viewer Modal -->
+    <div id="documentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Business Document</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="documentContainer">
+                <!-- Document content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-navigate" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
-        function toggleDebug() {
-            var debugInfo = document.getElementById('debugInfo');
-            var toggleBtn = document.querySelector('.toggle-debug');
+        // Toggle employer card expand/collapse
+        function toggleEmployerCard(employerId) {
+            const card = document.querySelector(`.employer-card[data-employer-id="${employerId}"]`);
+            const content = card.querySelector('.employer-content');
+            const toggleIcon = card.querySelector('.toggle-icon');
             
-            if (debugInfo.classList.contains('hidden')) {
-                debugInfo.classList.remove('hidden');
-                toggleBtn.textContent = 'Hide System Diagnostics';
+            content.classList.toggle('open');
+            toggleIcon.classList.toggle('rotated');
+        }
+        
+        // Modal functionality
+        const modal = document.getElementById("documentModal");
+        const documentContainer = document.getElementById("documentContainer");
+        const closeBtn = document.getElementsByClassName("close")[0];
+        
+        // Show document in modal
+        function viewDocument(documentPath, companyName) {
+            modal.style.display = "block";
+            document.querySelector('.modal-title').innerText = companyName + ' - Business Document';
+            
+            // Add the site URL if the path doesn't start with http
+            if (!documentPath.startsWith('http')) {
+                documentPath = '<?php echo rtrim(SITE_URL, '/'); ?>' + documentPath;
+            }
+            
+            // Display path for debugging
+            documentContainer.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                    <strong>Document Path:</strong> ${documentPath}
+                </div>
+            `;
+            
+            // Check file extension
+            const fileExt = documentPath.split('.').pop().toLowerCase();
+            
+            if(fileExt === 'pdf') {
+                // PDF file
+                documentContainer.innerHTML += `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
+            } else if(fileExt === 'docx' || fileExt === 'doc') {
+                // Word document - offer download link
+                documentContainer.innerHTML += `
+                    <div style="text-align:center; padding: 30px;">
+                        <p>Word documents cannot be previewed directly. You can download the file using the link below.</p>
+                        <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
+                            <i>📥</i> Download Document
+                        </a>
+                    </div>
+                `;
+            } else if(fileExt === 'jpg' || fileExt === 'jpeg' || fileExt === 'png' || fileExt === 'gif') {
+                // Image file
+                documentContainer.innerHTML += `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
             } else {
-                debugInfo.classList.add('hidden');
-                toggleBtn.textContent = 'Show System Diagnostics';
+                // Other file types
+                documentContainer.innerHTML += `
+                    <div style="text-align:center; padding: 30px;">
+                        <p>This file type cannot be previewed. You can download the file using the link below.</p>
+                        <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
+                            <i>📥</i> Download Document
+                        </a>
+                    </div>
+                `;
+            }
+            
+            // Add check for file existence
+            fetch(documentPath, { method: 'HEAD' })
+                .then(response => {
+                    if (!response.ok) {
+                        documentContainer.innerHTML += `
+                            <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
+                                <strong>Error:</strong> The file could not be found. The path may be incorrect or the file may have been moved or deleted.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    documentContainer.innerHTML += `
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
+                            <strong>Error:</strong> There was a problem accessing the file. ${error.message}
+                        </div>
+                    `;
+                });
+        }
+        
+        // Close modal when clicking X
+        closeBtn.onclick = function() {
+            closeModal();
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                closeModal();
             }
         }
+        
+        // Function to close modal
+        function closeModal() {
+            modal.style.display = "none";
+            documentContainer.innerHTML = '';
+        }
+        
+        // Automatically expand the card if it's the current view (when loaded)
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentId = <?php echo $current_employer_id ?: 0; ?>;
+            if (currentId > 0) {
+                const card = document.querySelector(`.employer-card[data-employer-id="${currentId}"]`);
+                if (card) {
+                    const content = card.querySelector('.employer-content');
+                    const toggleIcon = card.querySelector('.toggle-icon');
+                    content.classList.add('open');
+                    toggleIcon.classList.add('rotated');
+                    
+                    // Scroll to the card
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+            
+            // Confirm logout
+            const logoutLink = document.querySelector('a[href*="logout.php"]');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if (!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

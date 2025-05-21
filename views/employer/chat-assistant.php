@@ -33,16 +33,17 @@ $is_verified = $employer['verified'] == 1;
 
 // Process admin query submission
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_query'])) {
-    $query_text = trim($_POST['query_text']);
+    $message_text = trim($_POST['query_text']);
     $query_type = trim($_POST['query_type']);
     
-    if(!empty($query_text) && !empty($query_type)) {
-        $query = "INSERT INTO admin_queries (user_id, query_type, query_text, status, created_at) 
+    if(!empty($message_text) && !empty($query_type)) {
+        // Use the query_type as subject and message_text as message
+        $query = "INSERT INTO admin_queries (user_id, subject, message, status, created_at) 
                  VALUES (?, ?, ?, 'pending', NOW())";
         $stmt = $db->prepare($query);
         $stmt->bindParam(1, $_SESSION['user_id']);
         $stmt->bindParam(2, $query_type);
-        $stmt->bindParam(3, $query_text);
+        $stmt->bindParam(3, $message_text);
         
         if($stmt->execute()) {
             $success = "Your query has been submitted to the admin. We'll get back to you soon.";
@@ -122,8 +123,8 @@ function generateAssistantResponse($message) {
     return "I understand your message. For specific assistance, you can submit a query to our admin team using the form on the right. They'll be happy to help!";
 }
 
-// Get previous queries
-$query = "SELECT query_type, query_text, status, response, created_at, responded_at 
+// Get previous queries - Updated column names
+$query = "SELECT subject, message, status, admin_notes, created_at, updated_at 
           FROM admin_queries 
           WHERE user_id = ? 
           ORDER BY created_at DESC";
@@ -671,20 +672,20 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             
                             <?php foreach($previous_queries as $query): ?>
                                 <div class="query-item">
-                                    <div class="query-type"><?php echo ucwords(str_replace('_', ' ', $query['query_type'])); ?></div>
-                                    <div class="query-text"><?php echo htmlspecialchars($query['query_text']); ?></div>
+                                    <div class="query-type"><?php echo ucwords(str_replace('_', ' ', $query['subject'])); ?></div>
+                                    <div class="query-text"><?php echo htmlspecialchars($query['message']); ?></div>
                                     <span class="query-status status-<?php echo $query['status']; ?>">
                                         <?php echo ucfirst($query['status']); ?>
                                     </span>
-                                    <?php if($query['response']): ?>
+                                    <?php if($query['admin_notes']): ?>
                                         <div class="query-response">
-                                            <?php echo htmlspecialchars($query['response']); ?>
+                                            <?php echo htmlspecialchars($query['admin_notes']); ?>
                                         </div>
                                     <?php endif; ?>
                                     <div class="query-meta">
                                         Submitted: <?php echo date('M d, Y', strtotime($query['created_at'])); ?>
-                                        <?php if($query['responded_at']): ?>
-                                            <br>Responded: <?php echo date('M d, Y', strtotime($query['responded_at'])); ?>
+                                        <?php if($query['updated_at'] && $query['updated_at'] != $query['created_at']): ?>
+                                            <br>Updated: <?php echo date('M d, Y', strtotime($query['updated_at'])); ?>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -753,4 +754,4 @@ $previous_queries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         });
     </script>
 </body>
-</html> 
+</html>

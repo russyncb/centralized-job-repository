@@ -16,6 +16,8 @@ function is_active($page) {
         <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="<?php echo is_active('search-jobs.php'); ?>"><i>🔍</i> Search Jobs</a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="<?php echo is_active('my-applications.php'); ?>"><i>📋</i> My Applications</a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="<?php echo is_active('saved-jobs.php'); ?>"><i>💾</i> Saved Jobs</a></li>
+        <!-- New Job Market Analytics Link -->
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/job-analytics.php" class="<?php echo is_active('job-analytics.php'); ?>"><i>📈</i> Job Market Analytics</a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php" id="logout-link"><i>🚪</i> Logout</a></li>
     </ul>
     <div class="sidebar-footer">
@@ -162,4 +164,4 @@ if (logoutLink) {
 #send-message:hover {
     background: #1557b0;
 }
-</style> 
+</style>

@@ -75,30 +75,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Fetch queries
-$query = "SELECT q.*, u.first_name, u.last_name, u.email, u.role
+// Fetch queries - CHANGED: Renamed from $query to $sql_query to avoid conflict
+$sql_query = "SELECT q.*, u.first_name, u.last_name, u.email, u.role
           FROM admin_queries q
           JOIN users u ON q.user_id = u.user_id
           WHERE 1=1";
 
 // Add status filter if provided
 if (!empty($status_filter)) {
-    $query .= " AND q.status = :status";
+    $sql_query .= " AND q.status = :status";
 }
 
 // Add search condition if provided
 if (!empty($search)) {
-    $query .= " AND (u.email LIKE :search OR u.first_name LIKE :search OR 
+    $sql_query .= " AND (u.email LIKE :search OR u.first_name LIKE :search OR 
                 u.last_name LIKE :search OR q.subject LIKE :search)";
 }
 
-$query .= " ORDER BY CASE 
+$sql_query .= " ORDER BY CASE 
                 WHEN q.status = 'pending' THEN 0
                 WHEN q.status = 'in_progress' THEN 1
                 ELSE 2
              END, q.created_at DESC";
 
-$stmt = $db->prepare($query);
+$stmt = $db->prepare($sql_query);
 
 // Bind status parameter if provided
 if (!empty($status_filter)) {
@@ -436,7 +436,7 @@ $total_queries = array_sum($status_totals);
                         <div class="query-card <?php echo $query['status']; ?>">
                             <div class="query-header">
                                 <div class="query-title">
-                                    <h3><?php echo htmlspecialchars($query['subject']); ?></h3>
+                                    <h3><?php echo htmlspecialchars($query['subject'] ?? 'No Subject'); ?></h3>
                                     <div class="query-meta">
                                         <span><?php echo htmlspecialchars($query['first_name'] . ' ' . $query['last_name']); ?></span>
                                         <span><?php echo htmlspecialchars($query['email']); ?></span>
@@ -453,7 +453,7 @@ $total_queries = array_sum($status_totals);
                             </div>
                             
                             <div class="query-message">
-                                <?php echo nl2br(htmlspecialchars($query['message'])); ?>
+                                <?php echo nl2br(htmlspecialchars($query['message'] ?? 'No message content')); ?>
                             </div>
                             
                             <?php if(!empty($query['admin_notes'])): ?>
@@ -470,7 +470,7 @@ $total_queries = array_sum($status_totals);
                                 
                                 <div style="margin-bottom: 15px;">
                                     <label for="admin_notes_<?php echo $query['query_id']; ?>" style="display: block; margin-bottom: 5px; font-weight: 500;">Admin Notes</label>
-                                    <textarea name="admin_notes" id="admin_notes_<?php echo $query['query_id']; ?>" placeholder="Add your notes here"><?php echo htmlspecialchars($query['admin_notes']); ?></textarea>
+                                    <textarea name="admin_notes" id="admin_notes_<?php echo $query['query_id']; ?>" placeholder="Add your notes here"><?php echo htmlspecialchars($query['admin_notes'] ?? ''); ?></textarea>
                                 </div>
                                 
                                 <div class="query-actions">
@@ -535,7 +535,15 @@ $total_queries = array_sum($status_totals);
                     }, 500); // 500ms delay after typing stops
                 });
             }
+            
+            // Make sure the buttons work by enforcing form submission
+            document.querySelectorAll('.query-actions button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Ensure the form gets submitted when a button is clicked
+                    this.closest('form').submit();
+                });
+            });
         });
     </script>
 </body>
-</html> 
+</html>
