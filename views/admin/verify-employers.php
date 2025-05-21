@@ -1116,60 +1116,79 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
         
         // Show document in modal
         function viewDocument(documentPath, companyName) {
-            modal.style.display = "block";
-            document.querySelector('.modal-title').innerText = companyName + ' - Business Document';
-            
-            // Add the site URL if the path doesn't start with http
-            if (!documentPath.startsWith('http')) {
-                documentPath = '<?php echo rtrim(SITE_URL, '/'); ?>' + documentPath;
-            }
-            
-            // Check file extension
-            const fileExt = documentPath.split('.').pop().toLowerCase();
-            
-            if(fileExt === 'pdf') {
-                // PDF file
-                documentContainer.innerHTML = `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
-            } else if(fileExt === 'docx' || fileExt === 'doc') {
-                // Word document - offer download link
-                documentContainer.innerHTML = `
-                    <div style="text-align:center; padding: 30px;">
-                        <p>Word documents cannot be previewed directly. You can download the file using the link below.</p>
-                        <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
-                            <i>📥</i> Download Document
-                        </a>
-                    </div>
-                `;
-            } else if(fileExt === 'jpg' || fileExt === 'jpeg' || fileExt === 'png' || fileExt === 'gif') {
-                // Image file
-                documentContainer.innerHTML = `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
-            } else {
-                // Other file types
-                documentContainer.innerHTML = `
-                    <div style="text-align:center; padding: 30px;">
-                        <p>This file type cannot be previewed. You can download the file using the link below.</p>
-                        <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
-                            <i>📥</i> Download Document
-                        </a>
-                    </div>
-                `;
-            }
-            
-            // Add check for file existence
-            fetch(documentPath, { method: 'HEAD' })
-                .then(response => {
-                    if (!response.ok) {
-                        documentContainer.innerHTML += `
-                            <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-                                <strong>Error:</strong> The file could not be found. Please try downloading it instead.
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    // Silently fail on CORS errors, which are common but harmless in this case
-                });
+    modal.style.display = "block";
+    document.querySelector('.modal-title').innerText = companyName + ' - Business Document';
+    
+    // Properly construct the URL path based on document path structure
+    if (!documentPath.startsWith('http')) {
+        // Get base URL without trailing slash
+        const baseUrl = '<?php echo rtrim(SITE_URL, '/'); ?>';
+        
+        // Make sure we don't get double slashes by standardizing the path
+        if (documentPath.startsWith('/')) {
+            documentPath = baseUrl + documentPath; // Path already has leading slash
+        } else {
+            documentPath = baseUrl + '/' + documentPath; // Add slash between baseUrl and path
         }
+        
+        // Add debug output to help diagnose issues
+        console.log('Constructed document path:', documentPath);
+    }
+    
+    // Check file extension
+    const fileExt = documentPath.split('.').pop().toLowerCase();
+    
+    if(fileExt === 'pdf') {
+        // PDF file
+        documentContainer.innerHTML = `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
+    } else if(fileExt === 'docx' || fileExt === 'doc') {
+        // Word document - offer download link
+        documentContainer.innerHTML = `
+            <div style="text-align:center; padding: 30px;">
+                <p>Word documents cannot be previewed directly. You can download the file using the link below.</p>
+                <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
+                    <i>📥</i> Download Document
+                </a>
+            </div>
+        `;
+    } else if(fileExt === 'jpg' || fileExt === 'jpeg' || fileExt === 'png' || fileExt === 'gif') {
+        // Image file
+        documentContainer.innerHTML = `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
+    } else {
+        // Other file types
+        documentContainer.innerHTML = `
+            <div style="text-align:center; padding: 30px;">
+                <p>This file type cannot be previewed. You can download the file using the link below.</p>
+                <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
+                    <i>📥</i> Download Document
+                </a>
+            </div>
+        `;
+    }
+    
+    // Add check for file existence with error handling
+    fetch(documentPath, { method: 'HEAD' })
+        .then(response => {
+            if (!response.ok) {
+                documentContainer.innerHTML += `
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
+                        <strong>Error:</strong> The file could not be found. Status code: ${response.status}. 
+                        Path tried: ${documentPath}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            // Show fetch errors (except CORS which are expected in some cases)
+            if (!error.message.includes('CORS')) {
+                documentContainer.innerHTML += `
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        });
+}
         
         // Close modal when clicking X
         closeBtn.onclick = function() {
