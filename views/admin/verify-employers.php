@@ -91,36 +91,6 @@ $status = isset($_GET['status']) ? trim($_GET['status']) : 'pending';
 // Get employer_id from GET parameter for individual view if provided
 $current_employer_id = isset($_GET['employer_id']) ? (int)$_GET['employer_id'] : 0;
 
-// Debug: Check the uploads directories exist
-$uploads_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_files/';
-$uploads_dir_exists = is_dir($uploads_dir);
-$uploads_dir_writable = is_writable($uploads_dir);
-
-// Check for alternate folder (singular vs plural)
-$alternate_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_file/';
-$alternate_dir_exists = is_dir($alternate_dir);
-
-// Debug: List any files in the upload directories
-$files_in_dir = [];
-if($uploads_dir_exists) {
-    $files_in_dir = scandir($uploads_dir);
-    // Remove . and .. from the list
-    $files_in_dir = array_diff($files_in_dir, ['.', '..']);
-}
-
-$files_in_alternate = [];
-if($alternate_dir_exists) {
-    $files_in_alternate = scandir($alternate_dir);
-    // Remove . and .. from the list
-    $files_in_alternate = array_diff($files_in_alternate, ['.', '..']);
-}
-
-// Direct database query to check what's in the business_file column
-$check_query = "SELECT employer_id, company_name, business_file FROM employer_profiles WHERE business_file IS NOT NULL";
-$check_stmt = $db->prepare($check_query);
-$check_stmt->execute();
-$business_files_in_db = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
-
 // Build query based on whether we're viewing a specific employer or list
 if($current_employer_id > 0) {
     // Get a specific employer
@@ -450,38 +420,6 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             background-color: #f8d7da;
             color: #721c24;
             border-left: 4px solid #dc3545;
-        }
-        
-        /* Debug Info */
-        .debug-info {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #ffc107;
-        }
-        
-        .debug-section {
-            margin-bottom: 15px;
-        }
-        
-        .debug-section h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        
-        .debug-section ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        
-        .debug-section pre {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-            margin: 10px 0;
         }
         
         /* Employer Card Styles - Collapsible */
@@ -945,73 +883,6 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                 </div>
             <?php endif; ?>
             
-            <!-- Debug info for business file upload directory -->
-            <div class="debug-info">
-                <h3>Debugging Information</h3>
-                
-                <div class="debug-section">
-                    <h4>Upload Directories</h4>
-                    <ul>
-                        <li>Main uploads directory (<?php echo $uploads_dir; ?>): <?php echo $uploads_dir_exists ? '<span style="color: green;">Exists</span>' : '<span style="color: red;">Does not exist</span>'; ?></li>
-                        <?php if($uploads_dir_exists): ?>
-                            <li>Permissions: <?php echo $uploads_dir_writable ? '<span style="color: green;">Writable</span>' : '<span style="color: red;">Not writable</span>'; ?></li>
-                        <?php endif; ?>
-                        <li>Alternate directory (<?php echo $alternate_dir; ?>): <?php echo $alternate_dir_exists ? '<span style="color: green;">Exists</span>' : '<span style="color: red;">Does not exist</span>'; ?></li>
-                    </ul>
-                </div>
-                
-                <div class="debug-section">
-                    <h4>Files in Upload Directories</h4>
-                    <?php if(count($files_in_dir) > 0): ?>
-                        <p>Files in main directory:</p>
-                        <ul>
-                            <?php foreach($files_in_dir as $file): ?>
-                                <li><?php echo htmlspecialchars($file); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p>No files found in main upload directory.</p>
-                    <?php endif; ?>
-                    
-                    <?php if(count($files_in_alternate) > 0): ?>
-                        <p>Files in alternate directory:</p>
-                        <ul>
-                            <?php foreach($files_in_alternate as $file): ?>
-                                <li><?php echo htmlspecialchars($file); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-                
-                <div class="debug-section">
-                    <h4>Business Files in Database</h4>
-                    <?php if(count($business_files_in_db) > 0): ?>
-                        <ul>
-                            <?php foreach($business_files_in_db as $entry): ?>
-                                <li>
-                                    Company: <?php echo htmlspecialchars($entry['company_name']); ?><br>
-                                    File path: <?php echo htmlspecialchars($entry['business_file']); ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p>No business file paths found in the database.</p>
-                    <?php endif; ?>
-                </div>
-                
-                <div class="debug-section">
-                    <h4>How to Fix</h4>
-                    <p>Based on the info above:</p>
-                    <ol>
-                        <li>Make sure the <code>/uploads/business_files/</code> directory exists (plural).</li>
-                        <li>Ensure it has proper write permissions (755 or higher).</li>
-                        <li>Check if files are being stored with the correct path in the database.</li>
-                        <li>If files exist in the alternate folder, move them to the correct one.</li>
-                    </ol>
-                    <p>After fixing these issues, try registering a new employer or manually update an existing entry.</p>
-                </div>
-            </div>
-            
             <!-- New Search & Filter Interface -->
             <div class="filter-container">
                 <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="get">
@@ -1083,14 +954,6 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                             // Business file information
                             $has_business_file = !empty($employer['business_file']);
                             $business_file_path = $has_business_file ? $employer['business_file'] : '';
-                            
-                            // Fix for file path if it's in the alternate directory
-                            if($has_business_file && !file_exists($_SERVER['DOCUMENT_ROOT'] . $business_file_path) && $alternate_dir_exists) {
-                                $alternate_path = str_replace('/uploads/business_files/', '/uploads/business_file/', $business_file_path);
-                                if(file_exists($_SERVER['DOCUMENT_ROOT'] . $alternate_path)) {
-                                    $business_file_path = $alternate_path;
-                                }
-                            }
                         ?>
                         <div class="employer-card" data-employer-id="<?php echo $employer_id; ?>">
                             <div class="employer-header" onclick="toggleEmployerCard(<?php echo $employer_id; ?>)">
@@ -1170,7 +1033,6 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                                             <span>
                                                 <?php if($has_business_file): ?>
                                                     <a href="#" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>'); return false;">View Document</a>
-                                                    <p style="margin-top: 5px; font-size: 0.8rem; color: #6c757d;">(File path: <?php echo htmlspecialchars($business_file_path); ?>)</p>
                                                 <?php else: ?>
                                                     Not provided
                                                 <?php endif; ?>
@@ -1262,22 +1124,15 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                 documentPath = '<?php echo rtrim(SITE_URL, '/'); ?>' + documentPath;
             }
             
-            // Display path for debugging
-            documentContainer.innerHTML = `
-                <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
-                    <strong>Document Path:</strong> ${documentPath}
-                </div>
-            `;
-            
             // Check file extension
             const fileExt = documentPath.split('.').pop().toLowerCase();
             
             if(fileExt === 'pdf') {
                 // PDF file
-                documentContainer.innerHTML += `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
+                documentContainer.innerHTML = `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
             } else if(fileExt === 'docx' || fileExt === 'doc') {
                 // Word document - offer download link
-                documentContainer.innerHTML += `
+                documentContainer.innerHTML = `
                     <div style="text-align:center; padding: 30px;">
                         <p>Word documents cannot be previewed directly. You can download the file using the link below.</p>
                         <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
@@ -1287,10 +1142,10 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                 `;
             } else if(fileExt === 'jpg' || fileExt === 'jpeg' || fileExt === 'png' || fileExt === 'gif') {
                 // Image file
-                documentContainer.innerHTML += `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
+                documentContainer.innerHTML = `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
             } else {
                 // Other file types
-                documentContainer.innerHTML += `
+                documentContainer.innerHTML = `
                     <div style="text-align:center; padding: 30px;">
                         <p>This file type cannot be previewed. You can download the file using the link below.</p>
                         <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
@@ -1306,17 +1161,13 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                     if (!response.ok) {
                         documentContainer.innerHTML += `
                             <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-                                <strong>Error:</strong> The file could not be found. The path may be incorrect or the file may have been moved or deleted.
+                                <strong>Error:</strong> The file could not be found. Please try downloading it instead.
                             </div>
                         `;
                     }
                 })
                 .catch(error => {
-                    documentContainer.innerHTML += `
-                        <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-                            <strong>Error:</strong> There was a problem accessing the file. ${error.message}
-                        </div>
-                    `;
+                    // Silently fail on CORS errors, which are common but harmless in this case
                 });
         }
         

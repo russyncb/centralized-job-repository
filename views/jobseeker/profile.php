@@ -1179,24 +1179,26 @@ $profile_completion = 100 - (count($missing_fields) * 20);
 </head>
 <body>
     <div class="jobseeker-container">
-        <div class="sidebar">
-            <button class="sidebar-toggle">❮</button>
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
-                </div>
-                <h3>ShaSha</h3>
-            </div>
-            
-            <ul class="sidebar-menu">
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php"><i>📊</i><span>Dashboard</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="active"><i>👤</i><span>My Profile</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php"><i>🔍</i><span>Search Jobs</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php"><i>💾</i><span>Saved Jobs</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php"><i>📝</i><span>My Applications</span></a></li>
-                <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
-            </ul>
+    <div class="sidebar">
+    <button class="sidebar-toggle">❮</button>
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
         </div>
+        <h3>ShaSha</h3>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>"><i>📊</i><span>Dashboard</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'profile.php' ? 'active' : ''; ?>"><i>👤</i><span>My Profile</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'search-jobs.php' ? 'active' : ''; ?>"><i>🔍</i><span>Search Jobs</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'saved-jobs.php' ? 'active' : ''; ?>"><i>💾</i><span>Saved Jobs</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'my-applications.php' ? 'active' : ''; ?>"><i>📝</i><span>My Applications</span></a></li>
+        <!-- Job Market Analytics Link -->
+        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/job-analytics.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'job-analytics.php' ? 'active' : ''; ?>"><i>📈</i><span>Job Market Analytics</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
+    </ul>
+</div>
         <div class="main-content">
             <div class="top-bar">
                 <h1>My Profile</h1>

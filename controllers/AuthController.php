@@ -68,11 +68,12 @@ class AuthController {
             // Create role-specific profile
             switch($userData['role']) {
                 case 'employer':
-                    // Create employer profile
-                    $query = "INSERT INTO employer_profiles (user_id, company_name) VALUES (?, ?)";
+                    // Create employer profile - FIXED: Added business_file to the SQL query
+                    $query = "INSERT INTO employer_profiles (user_id, company_name, business_file) VALUES (?, ?, ?)";
                     $stmt = $this->db->prepare($query);
                     $stmt->bindParam(1, $user_id);
                     $stmt->bindParam(2, $userData['company_name']);
+                    $stmt->bindParam(3, $userData['business_file']); // Added this line to save business_file
                     $stmt->execute();
                     break;
                     
@@ -120,4 +121,3 @@ class AuthController {
         return self::isLoggedIn() && $_SESSION['role'] === $role;
     }
 }
-?>
