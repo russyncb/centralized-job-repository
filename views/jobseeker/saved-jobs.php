@@ -596,214 +596,6 @@ if(!empty($saved_jobs)) {
             margin-bottom: 20px;
         }
         
-        @media (max-width: 768px) {
-            .jobseeker-container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-            }
-            
-            .job-card {
-                flex-direction: column;
-            }
-            
-            .company-logo {
-                margin-bottom: 15px;
-            }
-            
-            .job-header {
-                flex-direction: column;
-            }
-            
-            .job-status {
-                margin-top: 10px;
-            }
-        }
-        
-        /* Collapsible Sidebar */
-        .sidebar.collapsed {
-            width: 70px;
-        }
-        
-        .sidebar.collapsed .sidebar-header h3,
-        .sidebar.collapsed .sidebar-menu a span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .sidebar-menu a {
-            padding: 14px;
-            justify-content: center;
-        }
-        
-        .sidebar.collapsed .sidebar-menu a i {
-            margin: 0;
-        }
-        
-        /* Sidebar Toggle Button - New Position */
-        .sidebar-toggle {
-            position: fixed;
-            top: 20px;
-            left: 260px; /* Position it just outside the expanded sidebar */
-            width: 32px;
-            height: 32px;
-            background: #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
-            border: none;
-            color: #1a3b5d;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar.collapsed .sidebar-toggle {
-            left: 80px; /* Adjust position when sidebar is collapsed */
-            transform: rotate(180deg);
-        }
-        
-        /* Floating Chatbot */
-        .chatbot-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-        }
-        
-        .chatbot-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.3s ease;
-        }
-        
-        .chatbot-icon:hover {
-            transform: scale(1.1);
-        }
-        
-        .chatbot-icon svg {
-            width: 28px;
-            height: 28px;
-            color: white;
-        }
-        
-        .chatbot-box {
-            position: absolute;
-            bottom: 80px;
-            right: 0;
-            width: 350px;
-            height: 500px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            display: none;
-            flex-direction: column;
-        }
-        
-        .chatbot-header {
-            padding: 15px 20px;
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            color: white;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .chatbot-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-        }
-        
-        #close-chat {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-        }
-        
-        .chatbot-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .chatbot-input {
-            padding: 15px;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .chatbot-input input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            outline: none;
-        }
-        
-        .chatbot-input button {
-            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
-            color: white;
-            border: none;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        
-        .chatbot-input button:hover {
-            opacity: 0.9;
-        }
-        
-        .message {
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .user-message {
-            align-items: flex-end;
-        }
-        
-        .bot-message {
-            align-items: flex-start;
-        }
-        
-        .message-content {
-            padding: 10px 15px;
-            border-radius: 15px;
-            max-width: 80%;
-        }
-        
-        .user-message .message-content {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        
-        .bot-message .message-content {
-            background: #f5f5f5;
-            color: #333;
-        }
-        
         .search-container {
             margin-bottom: 30px;
             padding: 20px;
@@ -857,222 +649,289 @@ if(!empty($saved_jobs)) {
             color: #666;
             font-size: 0.9rem;
         }
+        
+        @media (max-width: 768px) {
+            .jobseeker-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .job-card {
+                flex-direction: column;
+            }
+            
+            .company-logo {
+                margin-bottom: 15px;
+            }
+            
+            .job-header {
+                flex-direction: column;
+            }
+            
+            .job-status {
+                margin-top: 10px;
+            }
+        }
+        
+        /* Collapsible Sidebar */
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        
+        .sidebar.collapsed .sidebar-header h3,
+        .sidebar.collapsed .sidebar-menu a span {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a {
+            padding: 14px;
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .sidebar-menu a i {
+            margin: 0;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 260px;
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: none;
+            color: #1a3b5d;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-toggle {
+            left: 80px;
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
-<div class="sidebar">
-    <button class="sidebar-toggle">❮</button>
-    <div class="sidebar-header">
-        <div class="sidebar-logo">
-            <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
+<div class="jobseeker-container">
+    <div class="sidebar">
+        <button class="sidebar-toggle">❮</button>
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <?php echo strtoupper(substr($jobseeker['first_name'], 0, 1) . substr($jobseeker['last_name'], 0, 1)); ?>
+            </div>
+            <h3>ShaSha</h3>
         </div>
-        <h3>ShaSha</h3>
+        
+        <ul class="sidebar-menu">
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>"><i>📊</i><span>Dashboard</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'profile.php' ? 'active' : ''; ?>"><i>👤</i><span>My Profile</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'search-jobs.php' ? 'active' : ''; ?>"><i>🔍</i><span>Search Jobs</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'saved-jobs.php' ? 'active' : ''; ?>"><i>💾</i><span>Saved Jobs</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'my-applications.php' ? 'active' : ''; ?>"><i>📝</i><span>My Applications</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/job-analytics.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'job-analytics.php' ? 'active' : ''; ?>"><i>📈</i><span>Job Market Analytics</span></a></li>
+            <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
+        </ul>
     </div>
     
-    <ul class="sidebar-menu">
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>"><i>📊</i><span>Dashboard</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/profile.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'profile.php' ? 'active' : ''; ?>"><i>👤</i><span>My Profile</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'search-jobs.php' ? 'active' : ''; ?>"><i>🔍</i><span>Search Jobs</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'saved-jobs.php' ? 'active' : ''; ?>"><i>💾</i><span>Saved Jobs</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/my-applications.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'my-applications.php' ? 'active' : ''; ?>"><i>📝</i><span>My Applications</span></a></li>
-        <!-- Job Market Analytics Link -->
-        <li><a href="<?php echo SITE_URL; ?>/views/jobseeker/job-analytics.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'job-analytics.php' ? 'active' : ''; ?>"><i>📈</i><span>Job Market Analytics</span></a></li>
-        <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php"><i>🚪</i><span>Logout</span></a></li>
-    </ul>
-</div>
-        <div class="main-content">
-            <div class="top-bar">
-                <h1>Saved Jobs</h1>
-                <div class="user-info">
-                    <div class="user-name">
-                        <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?>
-                    </div>
-                    <?php if(!empty($jobseeker['headline'])): ?>
-                        <div class="company-info">
-                            <span class="company-name"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
-                        </div>
-                    <?php endif; ?>
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>Saved Jobs</h1>
+            <div class="user-info">
+                <div class="user-name">
+                    <?php echo htmlspecialchars($jobseeker['first_name'] . ' ' . $jobseeker['last_name']); ?>
                 </div>
+                <?php if(!empty($jobseeker['headline'])): ?>
+                    <div class="company-info">
+                        <span class="company-name"><?php echo htmlspecialchars($jobseeker['headline']); ?></span>
+                    </div>
+                <?php endif; ?>
             </div>
-            
-            <?php if(isset($_SESSION['message'])): ?>
-                <div class="message <?php echo $_SESSION['message_type']; ?>">
-                    <?php 
-                        echo $_SESSION['message']; 
-                        unset($_SESSION['message']);
-                        unset($_SESSION['message_type']);
-                    ?>
+        </div>
+        
+        <?php if(isset($_SESSION['message'])): ?>
+            <div class="message <?php echo $_SESSION['message_type']; ?>">
+                <?php 
+                    echo $_SESSION['message']; 
+                    unset($_SESSION['message']);
+                    unset($_SESSION['message_type']);
+                ?>
+            </div>
+        <?php endif; ?>
+        
+        <div class="search-container">
+            <form class="search-form" method="GET" action="">
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="search-input" 
+                    placeholder="Search saved jobs by title, company, or location..."
+                    value="<?php echo htmlspecialchars($search_query); ?>"
+                >
+                <button type="submit" class="search-button">
+                    <span>🔍</span> Search
+                </button>
+            </form>
+            <?php if(!empty($search_query)): ?>
+                <div class="search-stats">
+                    Showing results for "<?php echo htmlspecialchars($search_query); ?>"
+                    <a href="?" class="clear-search">(Clear search)</a>
                 </div>
             <?php endif; ?>
-            
-            <div class="search-container">
-                <form class="search-form" method="GET" action="">
-                    <input 
-                        type="text" 
-                        name="search" 
-                        class="search-input" 
-                        placeholder="Search saved jobs by title, company, or location..."
-                        value="<?php echo htmlspecialchars($search_query); ?>"
-                    >
-                    <button type="submit" class="search-button">
-                        <span>🔍</span> Search
-                    </button>
-                </form>
-                <?php if(!empty($search_query)): ?>
-                    <div class="search-stats">
-                        Showing results for "<?php echo htmlspecialchars($search_query); ?>"
-                        <a href="?" class="clear-search">(Clear search)</a>
-                    </div>
-                <?php endif; ?>
-            </div>
-            
-            <div class="job-list">
-                <?php if(count($saved_jobs) > 0): ?>
-                    <?php foreach($saved_jobs as $job): ?>
-                        <div class="job-card">
-                            <div class="company-logo">
-                                <?php if(!empty($job['company_logo'])): ?>
-                                    <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?> Logo">
-                                <?php else: ?>
-                                    <span><?php echo strtoupper(substr($job['company_name'], 0, 1)); ?></span>
-                                <?php endif; ?>
+        </div>
+        
+        <div class="job-list">
+            <?php if(count($saved_jobs) > 0): ?>
+                <?php foreach($saved_jobs as $job): ?>
+                    <div class="job-card">
+                        <div class="company-logo">
+                            <?php if(!empty($job['company_logo'])): ?>
+                                <img src="<?php echo SITE_URL . '/' . $job['company_logo']; ?>" alt="<?php echo htmlspecialchars($job['company_name']); ?> Logo">
+                            <?php else: ?>
+                                <span><?php echo strtoupper(substr($job['company_name'], 0, 1)); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="job-details">
+                            <div class="job-header">
+                                <div>
+                                    <div class="job-title">
+                                        <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>">
+                                            <?php echo htmlspecialchars($job['title']); ?>
+                                        </a>
+                                    </div>
+                                    <div class="company-name">
+                                        <?php echo htmlspecialchars($job['company_name']); ?>
+                                    </div>
+                                </div>
+                                <div class="job-status">
+                                    <span class="status-badge status-<?php echo $job['status']; ?>">
+                                        <?php echo ucfirst($job['status']); ?>
+                                    </span>
+                                </div>
                             </div>
-                            <div class="job-details">
-                                <div class="job-header">
-                                    <div>
-                                        <div class="job-title">
-                                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>">
-                                                <?php echo htmlspecialchars($job['title']); ?>
-                                            </a>
-                                        </div>
-                                        <div class="company-name">
-                                            <?php echo htmlspecialchars($job['company_name']); ?>
-                                        </div>
-                                    </div>
-                                    <div class="job-status">
-                                        <span class="status-badge status-<?php echo $job['status']; ?>">
-                                            <?php echo ucfirst($job['status']); ?>
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div class="job-meta">
-                                    <span><i>📍</i> <?php echo htmlspecialchars($job['location']); ?></span>
-                                    <span><i>💼</i> <?php echo ucfirst($job['job_type']); ?></span>
-                                    <?php if(!empty($job['salary_range'])): ?>
-                                        <span><i>💰</i> <?php echo htmlspecialchars($job['salary_range']); ?></span>
-                                    <?php endif; ?>
-                                    <span><i>📅</i> Posted: <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
-                                </div>
-                                
-                                <div class="job-description">
+                            
+                            <div class="job-meta">
+                                <span><i>📍</i> <?php echo htmlspecialchars($job['location']); ?></span>
+                                <span><i>💼</i> <?php echo ucfirst($job['job_type']); ?></span>
+                                <?php if(!empty($job['salary_range'])): ?>
+                                    <span><i>💰</i> <?php echo htmlspecialchars($job['salary_range']); ?></span>
+                                <?php endif; ?>
+                                <span><i>📅</i> Posted: <?php echo date('M d, Y', strtotime($job['posted_at'])); ?></span>
+                            </div>
+                            
+                            <div class="job-description">
+                                <?php 
+                                    $description = strip_tags($job['description']);
+                                    echo strlen($description) > 200 ? substr($description, 0, 200) . '...' : $description;
+                                ?>
+                            </div>
+                            
+                            <?php if(!empty($job['skills_required'])): ?>
+                                <div class="job-tags">
                                     <?php 
-                                        $description = strip_tags($job['description']);
-                                        echo strlen($description) > 200 ? substr($description, 0, 200) . '...' : $description;
+                                        $skills = explode(',', $job['skills_required']);
+                                        foreach($skills as $skill): 
+                                            $skill = trim($skill);
+                                            if(!empty($skill)):
+                                    ?>
+                                        <span class="job-tag"><?php echo htmlspecialchars($skill); ?></span>
+                                    <?php 
+                                            endif;
+                                        endforeach; 
                                     ?>
                                 </div>
-                                
-                                <?php if(!empty($job['skills_required'])): ?>
-                                    <div class="job-tags">
-                                        <?php 
-                                            $skills = explode(',', $job['skills_required']);
-                                            foreach($skills as $skill): 
-                                                $skill = trim($skill);
-                                                if(!empty($skill)):
-                                        ?>
-                                            <span class="job-tag"><?php echo htmlspecialchars($skill); ?></span>
-                                        <?php 
-                                                endif;
-                                            endforeach; 
-                                        ?>
-                                    </div>
+                            <?php endif; ?>
+                            
+                            <div class="saved-date">
+                                Saved on <?php echo date('M d, Y', strtotime($job['saved_at'])); ?>
+                            </div>
+                            
+                            <div class="job-actions">
+                                <?php if(in_array($job['job_id'], $applied_jobs)): ?>
+                                    <span class="applied-badge"><i>✓</i> Already Applied</span>
                                 <?php endif; ?>
                                 
-                                <div class="saved-date">
-                                    Saved on <?php echo date('M d, Y', strtotime($job['saved_at'])); ?>
-                                </div>
+                                <?php if($job['status'] == 'active'): ?>
+                                    <?php if(!in_array($job['job_id'], $applied_jobs)): ?>
+                                        <a href="<?php echo SITE_URL; ?>/views/jobseeker/apply-job.php?id=<?php echo $job['job_id']; ?>" class="btn btn-primary">Apply Now</a>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <button class="btn btn-disabled" disabled>Job Closed</button>
+                                <?php endif; ?>
                                 
-                                <div class="job-actions">
-                                    <?php if(in_array($job['job_id'], $applied_jobs)): ?>
-                                        <span class="applied-badge"><i>✓</i> Already Applied</span>
-                                    <?php endif; ?>
-                                    
-                                    <?php if($job['status'] == 'active'): ?>
-                                        <?php if(!in_array($job['job_id'], $applied_jobs)): ?>
-                                            <a href="<?php echo SITE_URL; ?>/views/jobseeker/apply-job.php?id=<?php echo $job['job_id']; ?>" class="btn btn-primary">Apply Now</a>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <button class="btn btn-disabled" disabled>Job Closed</button>
-                                    <?php endif; ?>
-                                    
-                                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline">View Details</a>
-                                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php?action=remove&job_id=<?php echo $job['job_id']; ?>" class="btn btn-danger remove-job">Remove</a>
-                                </div>
+                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/view-job.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline">View Details</a>
+                                <a href="<?php echo SITE_URL; ?>/views/jobseeker/saved-jobs.php?action=remove&job_id=<?php echo $job['job_id']; ?>" class="btn btn-danger remove-job">Remove</a>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                    
-                    <!-- Pagination -->
-                    <?php if($total_pages > 1): ?>
-                        <div class="pagination">
-                            <?php if($current_page > 1): ?>
-                                <a href="?page=<?php echo $current_page - 1; ?>">&laquo; Previous</a>
+                    </div>
+                <?php endforeach; ?>
+                
+                <!-- Pagination -->
+                <?php if($total_pages > 1): ?>
+                    <div class="pagination">
+                        <?php if($current_page > 1): ?>
+                            <a href="?page=<?php echo $current_page - 1; ?>">&laquo; Previous</a>
+                        <?php endif; ?>
+                        
+                        <?php for($i = 1; $i <= $total_pages; $i++): ?>
+                            <?php if($i == $current_page): ?>
+                                <span><?php echo $i; ?></span>
+                            <?php else: ?>
+                                <a href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
                             <?php endif; ?>
-                            
-                            <?php for($i = 1; $i <= $total_pages; $i++): ?>
-                                <?php if($i == $current_page): ?>
-                                    <span><?php echo $i; ?></span>
-                                <?php else: ?>
-                                    <a href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                <?php endif; ?>
-                            <?php endfor; ?>
-                            
-                            <?php if($current_page < $total_pages): ?>
-                                <a href="?page=<?php echo $current_page + 1; ?>">Next &raquo;</a>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📌</div>
-                        <h3>No Saved Jobs Yet</h3>
-                        <p>Save jobs you're interested in to revisit them later.</p>
-                        <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Explore Jobs</a>
+                        <?php endfor; ?>
+                        
+                        <?php if($current_page < $total_pages): ?>
+                            <a href="?page=<?php echo $current_page + 1; ?>">Next &raquo;</a>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
-            </div>
-        </div>
-    </div>
-    <!-- Chatbot Container -->
-    <div class="chatbot-container">
-        <div class="chatbot-icon" id="chatbot-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-        </div>
-        <div class="chatbot-box" id="chatbot-box">
-            <div class="chatbot-header">
-                <h3>ShaSha Assistant</h3>
-                <button id="close-chat">×</button>
-            </div>
-            <div class="chatbot-messages" id="chatbot-messages">
-                <div class="message bot-message">
-                    <div class="message-content">
-                        Hi there! I'm ShaSha's assistant. How can I help you today?
-                    </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <div class="empty-state-icon">📌</div>
+                    <h3>No Saved Jobs Yet</h3>
+                    <p>Save jobs you're interested in to revisit them later.</p>
+                    <a href="<?php echo SITE_URL; ?>/views/jobseeker/search-jobs.php" class="btn btn-primary">Explore Jobs</a>
                 </div>
-            </div>
-            <div class="chatbot-input">
-                <input type="text" id="user-input" placeholder="Type your message here...">
-                <button id="send-message">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
-    <script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
+</div>
+
+<!-- Include the Advanced Chatbot JS -->
+<script src="<?php echo SITE_URL; ?>/assets/js/chatbot.js"></script>
+
+<!-- Sidebar Toggle Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.querySelector('.sidebar-toggle');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+    
+    // Remove job confirmation
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-job')) {
+            if (!confirm('Are you sure you want to remove this job from your saved jobs?')) {
+                e.preventDefault();
+            }
+        }
+    });
+});
+</script>
 </body>
 </html>

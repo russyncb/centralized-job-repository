@@ -201,6 +201,15 @@ CREATE TABLE chat_messages (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+--Chatbot Logs
+CREATE TABLE chatbot_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(255),
+    user_type ENUM('seeker', 'employer'),
+    message TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Admin tokens table for authentication
 CREATE TABLE admin_tokens (
     token_id INT AUTO_INCREMENT PRIMARY KEY,

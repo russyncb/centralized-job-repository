@@ -148,6 +148,7 @@ function is_active($page) {
         <li><a href="<?php echo SITE_URL; ?>/views/employer/post-job.php" class="<?php echo is_active('post-job.php'); ?>"><i>📝</i><span>Post a Job</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/manage-jobs.php" class="<?php echo is_active('manage-jobs.php'); ?>"><i>💼</i><span>Manage Jobs</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/applications.php" class="<?php echo is_active('applications.php'); ?>"><i>📋</i><span>Applications</span></a></li>
+        <li><a href="<?php echo SITE_URL; ?>/views/employer/analytics.php" class="<?php echo is_active('analytics.php'); ?>"><i>📈</i><span>Analytics</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/employer/chat-assistant.php" class="<?php echo is_active('chat-assistant.php'); ?>"><i>💬</i><span>Chat Assistant</span></a></li>
         <li><a href="<?php echo SITE_URL; ?>/views/auth/logout.php" onclick="return confirm('Are you sure you want to logout?') || event.preventDefault();"><i>🚪</i><span>Logout</span></a></li>
     </ul>
@@ -170,4 +171,4 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
     });
 });
-</script> 
+</script>

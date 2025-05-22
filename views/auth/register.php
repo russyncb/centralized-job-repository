@@ -37,101 +37,140 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
     $role = $_POST['role'];
     
+    $business_file_path = null; // Initialize
+    
     // If employer, get company name and business file
     if($role == 'employer') {
         $company_name = trim($_POST['company_name']);
-        $business_file = $_FILES['business_file'];
-
-        // Validate business file
-        if($business_file['error'] == UPLOAD_ERR_OK) {
-            $target_dir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/business_files/';
+        
+        // Handle business file upload
+        if(isset($_FILES['business_file']) && $_FILES['business_file']['error'] == UPLOAD_ERR_OK) {
+            $business_file = $_FILES['business_file'];
             
-            // Check if the directory exists, if not, create it
-            if (!is_dir($target_dir)) {
-                mkdir($target_dir, 0755, true);
+            // Define upload directory - FIXED PATH
+            $upload_base_dir = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha/uploads/business_files/';
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($upload_base_dir)) {
+                if (!mkdir($upload_base_dir, 0755, true)) {
+                    $error = "Failed to create upload directory. Please contact administrator.";
+                }
             }
             
-            $target_file = $target_dir . basename($business_file['name']);
-            move_uploaded_file($business_file['tmp_name'], $target_file);
-            $business_file_path = '/uploads/business_files/' . basename($business_file['name']);
+            if(empty($error)) {
+                // Validate file type
+                $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                $file_type = $business_file['type'];
+                $file_extension = strtolower(pathinfo($business_file['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = ['pdf', 'doc', 'docx'];
+                
+                if(!in_array($file_extension, $allowed_extensions)) {
+                    $error = "Only PDF, DOC, and DOCX files are allowed for business documents.";
+                } elseif($business_file['size'] > 5 * 1024 * 1024) { // 5MB limit
+                    $error = "File size must be less than 5MB.";
+                } else {
+                    // Generate unique filename to avoid conflicts
+                    $file_extension = pathinfo($business_file['name'], PATHINFO_EXTENSION);
+                    $unique_filename = time() . '_' . uniqid() . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', pathinfo($business_file['name'], PATHINFO_FILENAME)) . '.' . $file_extension;
+                    $target_file = $upload_base_dir . $unique_filename;
+                    
+                    // Attempt to move uploaded file
+                    if(move_uploaded_file($business_file['tmp_name'], $target_file)) {
+                        // Store relative path for database
+                        $business_file_path = '/uploads/business_files/' . $unique_filename;
+                        
+                        // Log successful upload
+                        error_log("File uploaded successfully: " . $target_file);
+                        error_log("Database path: " . $business_file_path);
+                    } else {
+                        $error = "Failed to upload business file. Error details: " . error_get_last()['message'];
+                        error_log("File upload failed. Temp file: " . $business_file['tmp_name'] . ", Target: " . $target_file);
+                        error_log("Upload directory writable: " . (is_writable($upload_base_dir) ? 'Yes' : 'No'));
+                        error_log("Upload directory exists: " . (is_dir($upload_base_dir) ? 'Yes' : 'No'));
+                    }
+                }
+            }
         } else {
-            $error = "Error uploading business file.";
+            // Handle file upload errors
+            $upload_errors = [
+                UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
+                UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive.',
+                UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded.',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.'
+            ];
+            
+            $upload_error_code = isset($_FILES['business_file']) ? $_FILES['business_file']['error'] : UPLOAD_ERR_NO_FILE;
+            $error = isset($upload_errors[$upload_error_code]) ? $upload_errors[$upload_error_code] : 'Unknown upload error.';
+            
+            if($upload_error_code == UPLOAD_ERR_NO_FILE) {
+                $error = "Please upload a business document.";
+            }
         }
     }
     
     // Validate input
-    if(empty($email) || empty($password) || empty($confirm_password) || empty($first_name) || empty($last_name)) {
-        $error = "Please fill in all required fields.";
-    } elseif(!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email address.";
-    } elseif($password != $confirm_password) {
-        $error = "Passwords do not match.";
-    } elseif(strlen($password) < 6) {
-        $error = "Password must be at least 6 characters long.";
-    } elseif($role == 'employer' && (empty($company_name) || empty($business_file_path))) {
-        $error = "Please enter company name and upload a business file.";
-    } else {
-        // Generate a unique verification token
-        $verification_token = bin2hex(random_bytes(16));
-
-        // Prepare user data
-        $userData = [
-            'email' => $email,
-            'password' => $password,
-            'role' => $role,
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'phone' => $phone,
-            'verification_token' => $verification_token
-        ];
-        
-        // Add company name and business file if employer
-        if($role == 'employer') {
-            $userData['company_name'] = $company_name;
-            $userData['business_file'] = $business_file_path;
-        }
-        
-        // Attempt registration
-        $auth = new AuthController();
-        $result = $auth->register($userData);
-        
-        if($result['success']) {
-            // Send verification email (commented out to avoid the error message)
-            /*
-            $mail = new PHPMailer\PHPMailer\PHPMailer();
-            $mail->isSMTP();
-            $mail->Host = 'smtp.example.com'; // Set the SMTP server to send through
-            $mail->SMTPAuth = true;
-            $mail->Username = 'your_email@example.com'; // SMTP username
-            $mail->Password = 'your_password'; // SMTP password
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-
-            $mail->setFrom('no-reply@example.com', 'ShaSha CJRS');
-            $mail->addAddress($email, $first_name . ' ' . $last_name);
-
-            $mail->isHTML(true);
-            $mail->Subject = 'Email Verification';
-            $mail->Body    = 'Please click the link to verify your email: <a href="' . SITE_URL . '/verify-email.php?token=' . $verification_token . '">Verify Email</a>';
-
-            if(!$mail->send()) {
-                $error = 'Verification email could not be sent. Please try again later.';
-            }
-            */
-            
-            if($userData['role'] == 'employer') {
-                // For employers, redirect to login with verification message
-                $message = "Registration successful! Your account needs to be verified by an admin before you can access the system. Please wait 15 minutes.";
-                header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message) . "&role=employer");
-                exit;
-            } else {
-                // For jobseekers, redirect to login with success message
-                $message = "Registration successful! Please login to continue.";
-                header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message));
-                exit;
-            }
+    if(empty($error)) {
+        if(empty($email) || empty($password) || empty($confirm_password) || empty($first_name) || empty($last_name)) {
+            $error = "Please fill in all required fields.";
+        } elseif(!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Please enter a valid email address.";
+        } elseif($password != $confirm_password) {
+            $error = "Passwords do not match.";
+        } elseif(strlen($password) < 6) {
+            $error = "Password must be at least 6 characters long.";
+        } elseif($role == 'employer' && (empty($company_name) || empty($business_file_path))) {
+            $error = "Please enter company name and upload a business document.";
         } else {
-            $error = $result['message'];
+            // Generate a unique verification token
+            $verification_token = bin2hex(random_bytes(16));
+
+            // Prepare user data
+            $userData = [
+                'email' => $email,
+                'password' => $password,
+                'role' => $role,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'phone' => $phone,
+                'verification_token' => $verification_token
+            ];
+            
+            // Add company name and business file if employer
+            if($role == 'employer') {
+                $userData['company_name'] = $company_name;
+                $userData['business_file'] = $business_file_path;
+            }
+            
+            // Attempt registration
+            $auth = new AuthController();
+            $result = $auth->register($userData);
+            
+            if($result['success']) {
+                if($userData['role'] == 'employer') {
+                    // For employers, redirect to login with verification message
+                    $message = "Registration successful! Your account needs to be verified by an admin before you can access the system. Please wait for verification.";
+                    header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message) . "&role=employer");
+                    exit;
+                } else {
+                    // For jobseekers, redirect to login with success message
+                    $message = "Registration successful! Please login to continue.";
+                    header("Location: " . SITE_URL . "/views/auth/login.php?success=" . urlencode($message));
+                    exit;
+                }
+            } else {
+                $error = $result['message'];
+                
+                // If registration failed and file was uploaded, clean up
+                if(!empty($business_file_path)) {
+                    $full_file_path = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha' . $business_file_path;
+                    if(file_exists($full_file_path)) {
+                        unlink($full_file_path);
+                    }
+                }
+            }
         }
     }
 }
@@ -339,6 +378,17 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             visibility: visible;
             opacity: 1;
         }
+        
+        /* File upload styling */
+        .file-upload-info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 0.85rem;
+            color: #0066cc;
+        }
     </style>
     <script>
         // Function to toggle company name and business file fields based on role selection
@@ -358,6 +408,33 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
 
         // Initialize the display based on the current role selection
         document.addEventListener('DOMContentLoaded', toggleCompanyField);
+        
+        // File upload validation
+        function validateFile() {
+            const fileInput = document.getElementById('business_file');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                const allowedExtensions = ['pdf', 'doc', 'docx'];
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                if (!allowedExtensions.includes(fileExtension)) {
+                    alert('Please upload only PDF, DOC, or DOCX files.');
+                    fileInput.value = '';
+                    return false;
+                }
+                
+                if (file.size > maxSize) {
+                    alert('File size must be less than 5MB.');
+                    fileInput.value = '';
+                    return false;
+                }
+            }
+            
+            return true;
+        }
     </script>
 </head>
 <body>
@@ -414,10 +491,17 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             <div class="form-group" id="business-file-field" style="display: none;">
                 <label for="business_file" class="required-field">Business Document
                     <span class="tooltip">?
-                        <span class="tooltiptext">A business document is required to verify your company's legitimacy. Accepted formats: PDF, DOCX.</span>
+                        <span class="tooltiptext">Upload a business registration document, license, or certificate to verify your company's legitimacy.</span>
                     </span>
                 </label>
-                <input type="file" id="business_file" name="business_file" accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .docx, .pdf">
+                <input type="file" id="business_file" name="business_file" 
+                       accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                       onchange="validateFile()">
+                <div class="file-upload-info">
+                    <strong>Accepted formats:</strong> PDF, DOC, DOCX<br>
+                    <strong>Maximum size:</strong> 5MB<br>
+                    <strong>Required for verification:</strong> Business registration, license, or certificate
+                </div>
             </div>
             
             <div class="form-group">

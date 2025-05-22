@@ -55,21 +55,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['reject']) && isset($_POST['employer_id'])) {
         $employer_id = $_POST['employer_id'];
         
-        // Update user status to rejected
-        $query_user = "UPDATE users u
-                      JOIN employer_profiles e ON u.user_id = e.user_id
-                      SET u.status = 'rejected'
-                      WHERE e.employer_id = :employer_id";
-        
-        $stmt_user = $db->prepare($query_user);
-        $stmt_user->bindParam(':employer_id', $employer_id);
-        
-        if ($stmt_user->execute()) {
-            $_SESSION['message'] = "Employer application rejected.";
-            $_SESSION['message_type'] = "success";
-        } else {
-            $_SESSION['message'] = "Error rejecting employer.";
+        try {
+            // Start transaction
+            $db->beginTransaction();
+            
+            // First, get the business file path and user_id to clean up
+            $query_get_info = "SELECT e.business_file, e.user_id 
+                              FROM employer_profiles e 
+                              WHERE e.employer_id = :employer_id";
+            $stmt_get_info = $db->prepare($query_get_info);
+            $stmt_get_info->bindParam(':employer_id', $employer_id);
+            $stmt_get_info->execute();
+            $employer_info = $stmt_get_info->fetch(PDO::FETCH_ASSOC);
+            
+            if($employer_info) {
+                $user_id = $employer_info['user_id'];
+                $business_file = $employer_info['business_file'];
+                
+                // Delete the employer profile first (this will cascade delete related records)
+                $query_delete_profile = "DELETE FROM employer_profiles WHERE employer_id = :employer_id";
+                $stmt_delete_profile = $db->prepare($query_delete_profile);
+                $stmt_delete_profile->bindParam(':employer_id', $employer_id);
+                $stmt_delete_profile->execute();
+                
+                // Delete the user record (this ensures complete cleanup)
+                $query_delete_user = "DELETE FROM users WHERE user_id = :user_id";
+                $stmt_delete_user = $db->prepare($query_delete_user);
+                $stmt_delete_user->bindParam(':user_id', $user_id);
+                $stmt_delete_user->execute();
+                
+                // Delete the business file from filesystem if it exists
+                if(!empty($business_file)) {
+                    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha' . $business_file;
+                    if(file_exists($file_path)) {
+                        unlink($file_path);
+                        error_log("Deleted business file: " . $file_path);
+                    }
+                }
+                
+                // Commit the transaction
+                $db->commit();
+                
+                $_SESSION['message'] = "Employer application rejected and removed completely. They can register again if needed.";
+                $_SESSION['message_type'] = "success";
+            } else {
+                $db->rollback();
+                $_SESSION['message'] = "Employer not found.";
+                $_SESSION['message_type'] = "error";
+            }
+            
+        } catch (Exception $e) {
+            // Rollback on error
+            $db->rollback();
+            $_SESSION['message'] = "Error rejecting employer: " . $e->getMessage();
             $_SESSION['message_type'] = "error";
+            error_log("Error rejecting employer: " . $e->getMessage());
         }
     }
     
@@ -84,16 +124,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Handle search parameters
+// Handle search and filter parameters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : 'pending';
+$industry = isset($_GET['industry']) ? trim($_GET['industry']) : '';
+$date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
+$date_to = isset($_GET['date_to']) ? trim($_GET['date_to']) : '';
+$sort_by = isset($_GET['sort_by']) ? trim($_GET['sort_by']) : 'created_at';
+$sort_order = isset($_GET['sort_order']) ? trim($_GET['sort_order']) : 'DESC';
+
+// Pagination
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page = 10;
+$offset = ($page - 1) * $per_page;
 
 // Get employer_id from GET parameter for individual view if provided
 $current_employer_id = isset($_GET['employer_id']) ? (int)$_GET['employer_id'] : 0;
 
-// Build query based on whether we're viewing a specific employer or list
+// Build the base query - ONLY include pending and active employers (rejected are deleted)
+$base_query = "FROM employer_profiles e
+               JOIN users u ON e.user_id = u.user_id
+               WHERE u.role = 'employer'";
+
+$conditions = [];
+$params = [];
+
+// Add status filter - since rejected employers are deleted, we only have pending and active
+if($status === 'pending') {
+    $conditions[] = "u.status = 'pending'";
+} elseif($status === 'active') {
+    $conditions[] = "u.status = 'active'";
+}
+// If status is 'all', we show both pending and active (no rejected since they're deleted)
+
+// Add search condition if search is not empty
+if(!empty($search)) {
+    $conditions[] = "(e.company_name LIKE :search 
+                   OR u.first_name LIKE :search 
+                   OR u.last_name LIKE :search 
+                   OR u.email LIKE :search 
+                   OR e.industry LIKE :search 
+                   OR e.location LIKE :search)";
+    $params[':search'] = "%{$search}%";
+}
+
+// Add industry filter
+if(!empty($industry)) {
+    $conditions[] = "e.industry LIKE :industry";
+    $params[':industry'] = "%{$industry}%";
+}
+
+// Add date range filter
+if(!empty($date_from)) {
+    $conditions[] = "DATE(u.created_at) >= :date_from";
+    $params[':date_from'] = $date_from;
+}
+
+if(!empty($date_to)) {
+    $conditions[] = "DATE(u.created_at) <= :date_to";
+    $params[':date_to'] = $date_to;
+}
+
+// Combine conditions
+$where_clause = "";
+if(!empty($conditions)) {
+    $where_clause = " AND " . implode(" AND ", $conditions);
+}
+
+// Handle individual employer view
 if($current_employer_id > 0) {
-    // Get a specific employer
     $query = "SELECT e.*, u.user_id, u.first_name, u.last_name, u.email, u.phone, u.status, u.created_at
              FROM employer_profiles e
              JOIN users u ON e.user_id = u.user_id
@@ -101,48 +200,57 @@ if($current_employer_id > 0) {
     
     $stmt = $db->prepare($query);
     $stmt->bindParam(':employer_id', $current_employer_id);
+    $stmt->execute();
+    $employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Get all employers matching the criteria
-    $query = "SELECT e.*, u.user_id, u.first_name, u.last_name, u.email, u.phone, u.status, u.created_at
-             FROM employer_profiles e
-             JOIN users u ON e.user_id = u.user_id
-             WHERE u.role = 'employer'";
-    
-    // Add status filter if not viewing all
-    if($status !== 'all') {
-        $query .= " AND u.status = :status";
+    // Get total count for pagination
+    $count_query = "SELECT COUNT(*) as total " . $base_query . $where_clause;
+    $count_stmt = $db->prepare($count_query);
+    foreach($params as $key => $value) {
+        $count_stmt->bindValue($key, $value);
     }
+    $count_stmt->execute();
+    $total_records = $count_stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $total_pages = ceil($total_records / $per_page);
+
+    // Get employers with pagination
+    $valid_sort_columns = ['created_at', 'company_name', 'first_name', 'last_name', 'email', 'industry', 'location'];
+    $sort_column = in_array($sort_by, $valid_sort_columns) ? $sort_by : 'created_at';
+    $sort_direction = strtoupper($sort_order) === 'ASC' ? 'ASC' : 'DESC';
     
-    // Add search condition if search is not empty
-    if(!empty($search)) {
-        $query .= " AND (e.company_name LIKE :search 
-                   OR u.first_name LIKE :search 
-                   OR u.last_name LIKE :search 
-                   OR u.email LIKE :search 
-                   OR e.industry LIKE :search 
-                   OR e.location LIKE :search)";
-    }
+    // Map sort column to actual table column
+    $sort_mapping = [
+        'created_at' => 'u.created_at',
+        'company_name' => 'e.company_name',
+        'first_name' => 'u.first_name',
+        'last_name' => 'u.last_name',
+        'email' => 'u.email',
+        'industry' => 'e.industry',
+        'location' => 'e.location'
+    ];
     
-    $query .= " ORDER BY u.created_at DESC";
+    $order_by = " ORDER BY " . $sort_mapping[$sort_column] . " " . $sort_direction;
+    
+    $query = "SELECT e.*, u.user_id, u.first_name, u.last_name, u.email, u.phone, u.status, u.created_at " 
+             . $base_query . $where_clause . $order_by . " LIMIT :limit OFFSET :offset";
     
     $stmt = $db->prepare($query);
-    
-    // Bind status parameter if needed
-    if($status !== 'all') {
-        $stmt->bindParam(':status', $status);
+    foreach($params as $key => $value) {
+        $stmt->bindValue($key, $value);
     }
-    
-    // Bind search parameter if needed
-    if(!empty($search)) {
-        $searchParam = "%{$search}%";
-        $stmt->bindParam(':search', $searchParam);
-    }
+    $stmt->bindValue(':limit', $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$stmt->execute();
-$employers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get unique industries for filter dropdown
+$industry_query = "SELECT DISTINCT industry FROM employer_profiles WHERE industry IS NOT NULL AND industry != '' ORDER BY industry";
+$industry_stmt = $db->prepare($industry_query);
+$industry_stmt->execute();
+$industries = $industry_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Filter to just pending employers for the main display
+// Filter to just pending employers for navigation
 $pending_employers = array_filter($employers, function($employer) {
     return $employer['status'] === 'pending';
 });
@@ -150,7 +258,6 @@ $pending_employers = array_filter($employers, function($employer) {
 // If viewing a specific employer, get previous and next employer IDs
 $prev_id = $next_id = 0;
 if($current_employer_id > 0 && count($pending_employers) > 0) {
-    // Get all employer IDs in order for navigation
     $query_all_ids = "SELECT e.employer_id
                      FROM employer_profiles e
                      JOIN users u ON e.user_id = u.user_id
@@ -160,10 +267,8 @@ if($current_employer_id > 0 && count($pending_employers) > 0) {
     $stmt_all_ids->execute();
     $all_ids = $stmt_all_ids->fetchAll(PDO::FETCH_COLUMN);
     
-    // Find current position in the list
     $current_position = array_search($current_employer_id, $all_ids);
     
-    // Get previous and next IDs if they exist
     if($current_position !== false) {
         $prev_id = ($current_position > 0) ? $all_ids[$current_position - 1] : 0;
         $next_id = (isset($all_ids[$current_position + 1])) ? $all_ids[$current_position + 1] : 0;
@@ -175,6 +280,12 @@ $query_pending = "SELECT COUNT(*) as count FROM users WHERE role = 'employer' AN
 $stmt_pending = $db->prepare($query_pending);
 $stmt_pending->execute();
 $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
+
+// Get total active count
+$query_active = "SELECT COUNT(*) as count FROM users WHERE role = 'employer' AND status = 'active'";
+$stmt_active = $db->prepare($query_active);
+$stmt_active->execute();
+$active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
 ?>
 
 <!DOCTYPE html>
@@ -185,10 +296,10 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
     <title><?php echo $page_title . ' - ' . SITE_NAME; ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
     <style>
-        /* Admin Dashboard Styles */
+        /* Enhanced Admin Dashboard Styles */
         body {
             background-color: #f8f9fa;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
         }
@@ -303,157 +414,287 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             color: #495057;
         }
         
-        /* New Search Bar Styles */
-        .filter-container {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 20px;
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
             margin-bottom: 25px;
         }
         
-        .filter-row {
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            border-left: 4px solid #1557b0;
+        }
+        
+        .stat-card.pending {
+            border-left-color: #ffc107;
+        }
+        
+        .stat-card.active {
+            border-left-color: #28a745;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1557b0;
+            margin-bottom: 5px;
+        }
+        
+        .stat-number.pending {
+            color: #ffc107;
+        }
+        
+        .stat-number.active {
+            color: #28a745;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Enhanced Filter Container */
+        .filter-container {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .filter-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .filter-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1a3b5d;
+            margin: 0;
+        }
+        
+        .filter-toggle {
+            background: #1557b0;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .filter-toggle:hover {
+            background: #0f4c8a;
+        }
+        
+        .filter-content {
+            transition: all 0.3s ease;
+        }
+        
+        .filter-content.collapsed {
+            display: none;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .filter-group {
-            flex: 1;
-            min-width: 200px;
+            display: flex;
+            flex-direction: column;
         }
         
         .filter-group label {
-            display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #495057;
+            font-size: 0.95rem;
         }
         
-        .filter-input {
-            width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
+        .filter-input, .filter-select {
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
             font-size: 1rem;
-            transition: border-color 0.15s ease-in-out;
+            transition: all 0.3s ease;
+            background: white;
         }
         
-        .filter-input:focus {
+        .filter-input:focus, .filter-select:focus {
             border-color: #1557b0;
             outline: 0;
             box-shadow: 0 0 0 0.2rem rgba(21, 87, 176, 0.25);
         }
         
         .filter-select {
-            width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 1rem;
-            background-color: #fff;
-            transition: border-color 0.15s ease-in-out;
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 10px center;
+            background-position: right 12px center;
             background-size: 16px 12px;
+            padding-right: 40px;
         }
         
-        .filter-select:focus {
-            border-color: #1557b0;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(21, 87, 176, 0.25);
+        .filter-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            align-items: center;
         }
         
         .filter-button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn-apply {
-            background-color: #1557b0;
+            background: linear-gradient(135deg, #1557b0 0%, #0f4c8a 100%);
             color: white;
-            min-width: 120px;
+            box-shadow: 0 4px 15px rgba(21, 87, 176, 0.3);
         }
         
         .btn-apply:hover {
-            background-color: #12468e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(21, 87, 176, 0.4);
         }
         
         .btn-reset {
-            background-color: #6c757d;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
             color: white;
-            min-width: 120px;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
         }
         
         .btn-reset:hover {
-            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
         }
         
-        .filter-buttons {
+        /* Enhanced Pagination */
+        .pagination-container {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .pagination-info {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .pagination {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .pagination a, .pagination span {
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s;
+        }
+        
+        .pagination a:hover {
+            background: #1557b0;
+            color: white;
+            border-color: #1557b0;
+        }
+        
+        .pagination .current {
+            background: #1557b0;
+            color: white;
+            border-color: #1557b0;
+        }
+        
+        .pagination .disabled {
+            color: #adb5bd;
+            cursor: not-allowed;
         }
         
         /* Message Styles */
         .message {
-            padding: 15px;
+            padding: 15px 20px;
             margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            font-weight: 500;
         }
         
         .success {
-            background-color: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
-            border-left: 4px solid #28a745;
+            border-left: 5px solid #28a745;
         }
         
         .error {
-            background-color: #f8d7da;
+            background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
             color: #721c24;
-            border-left: 4px solid #dc3545;
+            border-left: 5px solid #dc3545;
         }
         
-        /* Employer Card Styles - Collapsible */
+        /* Enhanced Employer Cards */
         .employer-cards {
             margin-top: 20px;
         }
         
         .employer-card {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            margin-bottom: 15px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
             border: 1px solid rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
             overflow: hidden;
         }
         
         .employer-card:hover {
-            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 35px rgba(0,0,0,0.12);
         }
         
         .employer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 18px 25px;
-            background-color: #f8f9fa;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-bottom: 1px solid #eef2f7;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
         }
         
         .employer-header:hover {
-            background-color: #e9ecef;
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
         }
         
         .employer-name {
@@ -464,21 +705,22 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
         }
         
         .company-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #1557b0;
-            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #1557b0 0%, #0f4c8a 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            box-shadow: 0 3px 10px rgba(21, 87, 176, 0.3);
         }
         
         .company-info h3 {
             margin: 0;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             color: #1a3b5d;
             font-weight: 600;
         }
@@ -487,6 +729,24 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             margin: 5px 0 0;
             color: #6c757d;
             font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
         }
         
         .toggle-icon {
@@ -499,12 +759,12 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             padding: 0;
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease, padding 0.3s ease;
+            transition: all 0.4s ease;
         }
         
         .employer-content.open {
             padding: 25px;
-            max-height: 1000px; /* Large enough to fit content */
+            max-height: 1000px;
         }
         
         .employer-details {
@@ -520,16 +780,19 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
         
         .detail-group label {
             display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
+            font-weight: 600;
+            margin-bottom: 8px;
             color: #4a5568;
             font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .detail-group span {
             font-size: 1rem;
             color: #2d3748;
             word-break: break-word;
+            line-height: 1.5;
         }
         
         .detail-group span a {
@@ -547,11 +810,12 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             display: flex;
             justify-content: flex-end;
             gap: 12px;
+            flex-wrap: wrap;
         }
         
         .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 10px;
             font-weight: 500;
             border: none;
             cursor: pointer;
@@ -560,58 +824,56 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+            text-decoration: none;
         }
         
         .btn-verify {
-            background-color: #28a745;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
-            box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
         
         .btn-verify:hover {
-            background-color: #218838;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
         
         .btn-reject {
-            background-color: #dc3545;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
-            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
         }
         
         .btn-reject:hover {
-            background-color: #c82333;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
         }
         
         .btn-document {
-            background-color: #17a2b8;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
-            box-shadow: 0 2px 5px rgba(23, 162, 184, 0.3);
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
         }
         
         .btn-document:hover {
-            background-color: #138496;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(23, 162, 184, 0.4);
+            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
         }
         
         .btn-navigate {
-            background-color: #6c757d;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
             color: white;
-            box-shadow: 0 2px 5px rgba(108, 117, 125, 0.3);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
         }
         
         .btn-navigate:hover {
-            background-color: #5a6268;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
         }
         
         .btn-navigate.disabled {
-            background-color: #adb5bd;
+            background: #adb5bd;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -626,9 +888,9 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
         
         .no-employers {
             text-align: center;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.08);
             padding: 60px 30px;
             margin-top: 20px;
         }
@@ -646,7 +908,7 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             font-size: 1.1rem;
         }
         
-        /* Quick Actions for Each Card */
+        /* Enhanced Quick Actions */
         .quick-actions {
             display: flex;
             align-items: center;
@@ -654,110 +916,73 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
         }
         
         .quick-action-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: white;
-            border: 1px solid #dee2e6;
+            background: white;
+            border: 2px solid #dee2e6;
             color: #6c757d;
-            font-size: 1rem;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: all 0.3s ease;
         }
         
         .quick-action-btn:hover {
-            background-color: #f8f9fa;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .quick-action-view {
             color: #1557b0;
+            border-color: #1557b0;
+        }
+        
+        .quick-action-view:hover {
+            background: #1557b0;
+            color: white;
         }
         
         .quick-action-approve {
             color: #28a745;
+            border-color: #28a745;
+        }
+        
+        .quick-action-approve:hover {
+            background: #28a745;
+            color: white;
         }
         
         .quick-action-reject {
             color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .quick-action-reject:hover {
+            background: #dc3545;
+            color: white;
         }
         
         .rotated {
             transform: rotate(180deg);
         }
         
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1050;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 900px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .modal-title {
-            font-size: 1.5rem;
-            color: #1a3b5d;
-            margin: 0;
-        }
-        
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-        }
-        
-        .modal-body {
-            padding: 20px 0;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-        
-        .modal-footer {
-            padding-top: 15px;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            justify-content: flex-end;
-        }
-        
         /* Responsive Design */
+        @media (max-width: 1024px) {
+            .filter-row {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+            
+            .employer-details {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 70px;
-                overflow: hidden;
             }
             
             .sidebar-header h3 span {
@@ -770,9 +995,10 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             
             .main-content {
                 margin-left: 70px;
+                padding: 15px;
             }
             
-            .employer-details {
+            .filter-row {
                 grid-template-columns: 1fr;
             }
             
@@ -786,22 +1012,28 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             
             .employer-actions button {
                 width: 100%;
-                margin-bottom: 10px;
             }
             
-            .filter-row {
+            .quick-actions {
                 flex-direction: column;
+                gap: 5px;
             }
-            
-            .filter-group {
-                width: 100%;
-            }
+        }
+        
+        /* File debug info */
+        .file-debug {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            color: #0066cc;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- Simplified sidebar that doesn't rely on admin-sidebar.php -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <h3>
@@ -883,106 +1115,243 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                 </div>
             <?php endif; ?>
             
-            <!-- New Search & Filter Interface -->
-            <div class="filter-container">
-                <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="get">
-                    <div class="filter-row">
-                        <div class="filter-group">
-                            <label for="search">Search</label>
-                            <input type="text" id="search" name="search" class="filter-input" placeholder="Company name, email or contact person" value="<?php echo htmlspecialchars($search); ?>">
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="status">Status</label>
-                            <select id="status" name="status" class="filter-select">
-                                <option value="pending" <?php if($status == 'pending') echo 'selected'; ?>>Pending</option>
-                                <option value="active" <?php if($status == 'active') echo 'selected'; ?>>Active</option>
-                                <option value="rejected" <?php if($status == 'rejected') echo 'selected'; ?>>Rejected</option>
-                                <option value="all" <?php if($status == 'all') echo 'selected'; ?>>All Statuses</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-buttons">
-                            <button type="submit" class="filter-button btn-apply">Apply Filters</button>
-                            <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="filter-button btn-reset">Reset</a>
-                        </div>
+            <!-- Stats Cards -->
+            <?php if($current_employer_id == 0): ?>
+                <div class="stats-container">
+                    <div class="stat-card pending">
+                        <div class="stat-number pending"><?php echo $pending_count; ?></div>
+                        <div class="stat-label">Pending Verification</div>
                     </div>
-                </form>
+                    <div class="stat-card active">
+                        <div class="stat-number active"><?php echo $active_count; ?></div>
+                        <div class="stat-label">Verified Employers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><?php echo isset($total_records) ? $total_records : count($employers); ?></div>
+                        <div class="stat-label">Total Results</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><?php echo isset($total_pages) ? $total_pages : 1; ?></div>
+                        <div class="stat-label">Pages</div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Enhanced Filter Container -->
+            <div class="filter-container">
+                <div class="filter-header">
+                    <h3 class="filter-title">🔍 Advanced Filters</h3>
+                    <button class="filter-toggle" onclick="toggleFilters()">Toggle Filters</button>
+                </div>
+                <div class="filter-content" id="filterContent">
+                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="get" id="filterForm">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="search">🔎 Search</label>
+                                <input type="text" id="search" name="search" class="filter-input" 
+                                       placeholder="Company, person, email..." value="<?php echo htmlspecialchars($search); ?>">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="status">📊 Status</label>
+                                <select id="status" name="status" class="filter-select">
+                                    <option value="pending" <?php if($status == 'pending') echo 'selected'; ?>>Pending Verification</option>
+                                    <option value="active" <?php if($status == 'active') echo 'selected'; ?>>Verified/Active</option>
+                                    <option value="all" <?php if($status == 'all') echo 'selected'; ?>>All Statuses</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="industry">🏭 Industry</label>
+                                <select id="industry" name="industry" class="filter-select">
+                                    <option value="">All Industries</option>
+                                    <?php foreach($industries as $ind): ?>
+                                        <option value="<?php echo htmlspecialchars($ind); ?>" 
+                                                <?php if($industry == $ind) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars($ind); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="date_from">📅 From Date</label>
+                                <input type="date" id="date_from" name="date_from" class="filter-input" 
+                                       value="<?php echo htmlspecialchars($date_from); ?>">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="date_to">📅 To Date</label>
+                                <input type="date" id="date_to" name="date_to" class="filter-input" 
+                                       value="<?php echo htmlspecialchars($date_to); ?>">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="sort_by">🔄 Sort By</label>
+                                <select id="sort_by" name="sort_by" class="filter-select">
+                                    <option value="created_at" <?php if($sort_by == 'created_at') echo 'selected'; ?>>Application Date</option>
+                                    <option value="company_name" <?php if($sort_by == 'company_name') echo 'selected'; ?>>Company Name</option>
+                                    <option value="first_name" <?php if($sort_by == 'first_name') echo 'selected'; ?>>First Name</option>
+                                    <option value="last_name" <?php if($sort_by == 'last_name') echo 'selected'; ?>>Last Name</option>
+                                    <option value="email" <?php if($sort_by == 'email') echo 'selected'; ?>>Email</option>
+                                    <option value="industry" <?php if($sort_by == 'industry') echo 'selected'; ?>>Industry</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="sort_order">⬇️ Order</label>
+                                <select id="sort_order" name="sort_order" class="filter-select">
+                                    <option value="DESC" <?php if($sort_order == 'DESC') echo 'selected'; ?>>Newest First</option>
+                                    <option value="ASC" <?php if($sort_order == 'ASC') echo 'selected'; ?>>Oldest First</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button type="submit" class="filter-button btn-apply">
+                                🔍 Apply Filters
+                            </button>
+                            <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="filter-button btn-reset">
+                                🔄 Reset All
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
             
-            <?php if(count($pending_employers) > 0): ?>
-                <!-- If viewing a specific employer, show navigation controls -->
+            <?php if(count($employers) > 0): ?>
+                <!-- Navigation Controls for Individual View -->
                 <?php if($current_employer_id > 0): ?>
                     <div class="navigation-controls">
                         <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php" class="btn btn-navigate">
-                            <i>←</i> Back to List
+                            ← Back to List
                         </a>
                         <div>
                             <?php if($prev_id > 0): ?>
                                 <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php?employer_id=<?php echo $prev_id; ?>" class="btn btn-navigate">
-                                    <i>←</i> Previous
+                                    ← Previous
                                 </a>
                             <?php else: ?>
                                 <button class="btn btn-navigate disabled">
-                                    <i>←</i> Previous
+                                    ← Previous
                                 </button>
                             <?php endif; ?>
                             
                             <?php if($next_id > 0): ?>
                                 <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php?employer_id=<?php echo $next_id; ?>" class="btn btn-navigate">
-                                    Next <i>→</i>
+                                    Next →
                                 </a>
                             <?php else: ?>
                                 <button class="btn btn-navigate disabled">
-                                    Next <i>→</i>
+                                    Next →
                                 </button>
                             <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>
                 
+                <!-- Pagination (only show if not viewing individual employer) -->
+                <?php if($current_employer_id == 0 && isset($total_pages) && $total_pages > 1): ?>
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Showing <?php echo ($offset + 1); ?>-<?php echo min($offset + $per_page, $total_records); ?> of <?php echo $total_records; ?> employers
+                        </div>
+                        <div class="pagination">
+                            <?php if($page > 1): ?>
+                                <a href="?page=1&<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">First</a>
+                                <a href="?page=<?php echo ($page-1); ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $page-1])); ?>">Previous</a>
+                            <?php else: ?>
+                                <span class="disabled">First</span>
+                                <span class="disabled">Previous</span>
+                            <?php endif; ?>
+                            
+                            <?php
+                            $start_page = max(1, $page - 2);
+                            $end_page = min($total_pages, $page + 2);
+                            
+                            for($i = $start_page; $i <= $end_page; $i++):
+                            ?>
+                                <?php if($i == $page): ?>
+                                    <span class="current"><?php echo $i; ?></span>
+                                <?php else: ?>
+                                    <a href="?page=<?php echo $i; ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+                            
+                            <?php if($page < $total_pages): ?>
+                                <a href="?page=<?php echo ($page+1); ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $page+1])); ?>">Next</a>
+                                <a href="?page=<?php echo $total_pages; ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">Last</a>
+                            <?php else: ?>
+                                <span class="disabled">Next</span>
+                                <span class="disabled">Last</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="employer-cards">
-                    <?php foreach($pending_employers as $employer): ?>
+                    <?php foreach($employers as $employer): ?>
                         <?php 
                             $employer_id = $employer['employer_id'];
-                            // Get first letter of company name for icon
                             $company_initial = strtoupper(substr($employer['company_name'], 0, 1));
-                            // Get formatted date
                             $application_date = date('M d, Y', strtotime($employer['created_at']));
-                            // Determine if this card should be expanded (if it's the current view)
                             $is_expanded = ($current_employer_id > 0 && $current_employer_id == $employer_id);
-                            // Business file information
                             $has_business_file = !empty($employer['business_file']);
                             $business_file_path = $has_business_file ? $employer['business_file'] : '';
+                            
+                            // Debug file path
+                            $full_file_path = '';
+                            $file_exists = false;
+                            if($has_business_file) {
+                                $full_file_path = $_SERVER['DOCUMENT_ROOT'] . '/systems/claude/shasha' . $business_file_path;
+                                $file_exists = file_exists($full_file_path);
+                            }
                         ?>
                         <div class="employer-card" data-employer-id="<?php echo $employer_id; ?>">
                             <div class="employer-header" onclick="toggleEmployerCard(<?php echo $employer_id; ?>)">
                                 <div class="employer-name">
                                     <div class="company-icon"><?php echo $company_initial; ?></div>
                                     <div class="company-info">
-                                        <h3><?php echo htmlspecialchars($employer['company_name']); ?></h3>
-                                        <p>Application date: <?php echo $application_date; ?></p>
+                                        <h3><?php echo htmlspecialchars($employer['company_name']); ?>
+                                            <span class="status-badge status-<?php echo $employer['status']; ?>">
+                                                <?php echo ucfirst($employer['status']); ?>
+                                            </span>
+                                        </h3>
+                                        <p>Applied: <?php echo $application_date; ?> | 
+                                           Contact: <?php echo htmlspecialchars($employer['first_name'] . ' ' . $employer['last_name']); ?></p>
                                     </div>
                                 </div>
                                 <div class="quick-actions">
                                     <?php if($has_business_file): ?>
-                                        <button type="button" class="quick-action-btn quick-action-view" title="View Document" 
-                                                onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>'); event.stopPropagation();">
-                                            📄
-                                        </button>
+                                        <?php if($file_exists): ?>
+                                            <button type="button" class="quick-action-btn quick-action-view" title="View Document" 
+                                                    onclick="alert('File exists: <?php echo htmlspecialchars($full_file_path); ?>'); event.stopPropagation();">
+                                                📄
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="button" class="quick-action-btn" title="File Missing: <?php echo htmlspecialchars($business_file_path); ?>" 
+                                                    onclick="alert('File missing: <?php echo htmlspecialchars($full_file_path); ?>'); event.stopPropagation();">
+                                                ⚠️
+                                            </button>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <button type="button" class="quick-action-btn" title="No Document Available" disabled>
-                                            ❌📄
+                                            ❌
                                         </button>
                                     <?php endif; ?>
-                                    <button type="button" class="quick-action-btn quick-action-reject" title="Reject" 
-                                            onclick="if(confirm('Are you sure you want to reject this employer?')) { document.getElementById('reject-form-<?php echo $employer_id; ?>').submit(); }; event.stopPropagation();">
-                                        ❌
-                                    </button>
-                                    <button type="button" class="quick-action-btn quick-action-approve" title="Approve" 
-                                            onclick="document.getElementById('verify-form-<?php echo $employer_id; ?>').submit(); event.stopPropagation();">
-                                        ✓
-                                    </button>
+                                    
+                                    <?php if($employer['status'] == 'pending'): ?>
+                                        <button type="button" class="quick-action-btn quick-action-reject" title="Reject & Delete" 
+                                                onclick="if(confirm('Are you sure you want to PERMANENTLY DELETE this employer? They can register again later.')) { document.getElementById('reject-form-<?php echo $employer_id; ?>').submit(); }; event.stopPropagation();">
+                                            🗑️
+                                        </button>
+                                        <button type="button" class="quick-action-btn quick-action-approve" title="Approve" 
+                                                onclick="if(confirm('Are you sure you want to verify this employer?')) { document.getElementById('verify-form-<?php echo $employer_id; ?>').submit(); }; event.stopPropagation();">
+                                            ✅
+                                        </button>
+                                    <?php endif; ?>
                                     <div class="toggle-icon <?php echo $is_expanded ? 'rotated' : ''; ?>">▼</div>
                                 </div>
                             </div>
@@ -996,109 +1365,173 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                                         </div>
                                         
                                         <div class="detail-group">
-                                            <label>Email</label>
-                                            <span><?php echo htmlspecialchars($employer['email']); ?></span>
+                                            <label>Email Address</label>
+                                            <span><a href="mailto:<?php echo htmlspecialchars($employer['email']); ?>"><?php echo htmlspecialchars($employer['email']); ?></a></span>
                                         </div>
                                         
                                         <div class="detail-group">
-                                            <label>Phone</label>
+                                            <label>Phone Number</label>
                                             <span><?php echo htmlspecialchars($employer['phone'] ?? 'Not provided'); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Application Status</label>
+                                            <span class="status-badge status-<?php echo $employer['status']; ?>">
+                                                <?php echo ucfirst($employer['status']); ?>
+                                            </span>
                                         </div>
                                     </div>
                                     
                                     <div>
                                         <div class="detail-group">
                                             <label>Industry</label>
-                                            <span><?php echo htmlspecialchars($employer['industry'] ?? 'Not provided'); ?></span>
+                                            <span><?php echo htmlspecialchars($employer['industry'] ?? 'Not specified'); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Company Size</label>
+                                            <span><?php echo htmlspecialchars($employer['company_size'] ?? 'Not specified'); ?></span>
                                         </div>
                                         
                                         <div class="detail-group">
                                             <label>Location</label>
-                                            <span><?php echo htmlspecialchars($employer['location'] ?? 'Not provided'); ?></span>
+                                            <span><?php echo htmlspecialchars($employer['location'] ?? 'Not specified'); ?></span>
                                         </div>
                                         
                                         <div class="detail-group">
                                             <label>Website</label>
                                             <span>
                                                 <?php if(!empty($employer['website'])): ?>
-                                                    <a href="<?php echo htmlspecialchars($employer['website']); ?>" target="_blank"><?php echo htmlspecialchars($employer['website']); ?></a>
-                                                <?php else: ?>
-                                                    Not provided
-                                                <?php endif; ?>
-                                            </span>
-                                        </div>
-                                        
-                                        <div class="detail-group">
-                                            <label>Business Document</label>
-                                            <span>
-                                                <?php if($has_business_file): ?>
-                                                    <a href="#" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>'); return false;">View Document</a>
+                                                    <a href="<?php echo htmlspecialchars($employer['website']); ?>" target="_blank">
+                                                        <?php echo htmlspecialchars($employer['website']); ?>
+                                                    </a>
                                                 <?php else: ?>
                                                     Not provided
                                                 <?php endif; ?>
                                             </span>
                                         </div>
                                     </div>
+                                    
+                                    <div>
+                                        <div class="detail-group">
+                                            <label>Business Document</label>
+                                            <span>
+                                                <?php if($has_business_file): ?>
+                                                    📄 <?php echo htmlspecialchars(basename($business_file_path)); ?>
+                                                    <br><small>Status: <?php echo $file_exists ? '✅ File exists' : '❌ File missing'; ?></small>
+                                                <?php else: ?>
+                                                    ❌ Not provided
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                        
+                                        <?php if($has_business_file): ?>
+                                            <div class="file-debug">
+                                                <strong>File Debug Info:</strong><br>
+                                                DB Path: <?php echo htmlspecialchars($business_file_path); ?><br>
+                                                Full Path: <?php echo htmlspecialchars($full_file_path); ?><br>
+                                                Exists: <?php echo $file_exists ? 'YES' : 'NO'; ?><br>
+                                                <?php if($file_exists): ?>
+                                                    Size: <?php echo filesize($full_file_path); ?> bytes
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <div class="detail-group">
+                                            <label>Company Description</label>
+                                            <span><?php echo htmlspecialchars($employer['description'] ?? 'No description provided'); ?></span>
+                                        </div>
+                                        
+                                        <div class="detail-group">
+                                            <label>Application Date</label>
+                                            <span><?php echo date('F j, Y \a\t g:i A', strtotime($employer['created_at'])); ?></span>
+                                        </div>
+                                        
+                                        <?php if($employer['verified'] && $employer['verified_at']): ?>
+                                            <div class="detail-group">
+                                                <label>Verified Date</label>
+                                                <span><?php echo date('F j, Y \a\t g:i A', strtotime($employer['verified_at'])); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 
                                 <div class="employer-actions">
-                                    <?php if($has_business_file): ?>
-                                        <button type="button" class="btn btn-document" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>')">
-                                            <i>📄</i> View Document
-                                        </button>
+                                    <?php if($employer['status'] == 'pending'): ?>
+                                        <form id="reject-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
+                                            <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
+                                            <?php if($next_id > 0): ?>
+                                                <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
+                                            <?php endif; ?>
+                                            <button type="submit" name="reject" class="btn btn-reject" onclick="return confirm('⚠️ WARNING: This will PERMANENTLY DELETE this employer application and all associated data.\n\nThe employer will be able to register again with the same email if needed.\n\nAre you sure you want to continue?')">
+                                                🗑️ Reject & Delete
+                                            </button>
+                                        </form>
+                                        
+                                        <form id="verify-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
+                                            <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
+                                            <?php if($next_id > 0): ?>
+                                                <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
+                                            <?php endif; ?>
+                                            <button type="submit" name="verify" class="btn btn-verify" onclick="return confirm('Are you sure you want to verify this employer?')">
+                                                ✅ Verify Employer
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
-                                    
-                                    <form id="reject-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
-                                        <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
-                                        <?php if($next_id > 0): ?>
-                                            <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
-                                        <?php endif; ?>
-                                        <button type="submit" name="reject" class="btn btn-reject">Reject</button>
-                                    </form>
-                                    
-                                    <form id="verify-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
-                                        <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
-                                        <?php if($next_id > 0): ?>
-                                            <input type="hidden" name="next_id" value="<?php echo $next_id; ?>">
-                                        <?php endif; ?>
-                                        <button type="submit" name="verify" class="btn btn-verify">Verify Employer</button>
-                                    </form>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
+                
+                <!-- Bottom Pagination -->
+                <?php if($current_employer_id == 0 && isset($total_pages) && $total_pages > 1): ?>
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Page <?php echo $page; ?> of <?php echo $total_pages; ?>
+                        </div>
+                        <div class="pagination">
+                            <?php if($page > 1): ?>
+                                <a href="?page=1&<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">First</a>
+                                <a href="?page=<?php echo ($page-1); ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $page-1])); ?>">Previous</a>
+                            <?php endif; ?>
+                            
+                            <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
+                                <?php if($i == $page): ?>
+                                    <span class="current"><?php echo $i; ?></span>
+                                <?php else: ?>
+                                    <a href="?page=<?php echo $i; ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+                            
+                            <?php if($page < $total_pages): ?>
+                                <a href="?page=<?php echo ($page+1); ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $page+1])); ?>">Next</a>
+                                <a href="?page=<?php echo $total_pages; ?>&<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">Last</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
                 <div class="no-employers">
-                    <?php if(!empty($search) || $status != 'pending'): ?>
-                        <h3>No Matching Employers</h3>
-                        <p>No employers match your search criteria. <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php">Clear filters</a></p>
+                    <?php if(!empty($search) || $status != 'pending' || !empty($industry) || !empty($date_from) || !empty($date_to)): ?>
+                        <h3>🔍 No Matching Employers</h3>
+                        <p>No employers match your search criteria. <a href="<?php echo SITE_URL; ?>/views/admin/verify-employers.php">Clear all filters</a> to see all employers.</p>
                     <?php else: ?>
-                        <h3>No Pending Employers</h3>
-                        <p>There are currently no employers waiting for verification.</p>
+                        <h3>✅ All Caught Up!</h3>
+                        <p>There are currently no employers waiting for verification. Great job!</p>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
     </div>
     
-    <!-- Document Viewer Modal -->
-    <div id="documentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Business Document</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body" id="documentContainer">
-                <!-- Document content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-navigate" onclick="closeModal()">Close</button>
-            </div>
-        </div>
-    </div>
-    
     <script>
+        // Toggle filter visibility
+        function toggleFilters() {
+            const content = document.getElementById('filterContent');
+            content.classList.toggle('collapsed');
+        }
+        
         // Toggle employer card expand/collapse
         function toggleEmployerCard(employerId) {
             const card = document.querySelector(`.employer-card[data-employer-id="${employerId}"]`);
@@ -1109,107 +1542,9 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
             toggleIcon.classList.toggle('rotated');
         }
         
-        // Modal functionality
-        const modal = document.getElementById("documentModal");
-        const documentContainer = document.getElementById("documentContainer");
-        const closeBtn = document.getElementsByClassName("close")[0];
-        
-        // Show document in modal
-        function viewDocument(documentPath, companyName) {
-    modal.style.display = "block";
-    document.querySelector('.modal-title').innerText = companyName + ' - Business Document';
-    
-    // Properly construct the URL path based on document path structure
-    if (!documentPath.startsWith('http')) {
-        // Get base URL without trailing slash
-        const baseUrl = '<?php echo rtrim(SITE_URL, '/'); ?>';
-        
-        // Make sure we don't get double slashes by standardizing the path
-        if (documentPath.startsWith('/')) {
-            documentPath = baseUrl + documentPath; // Path already has leading slash
-        } else {
-            documentPath = baseUrl + '/' + documentPath; // Add slash between baseUrl and path
-        }
-        
-        // Add debug output to help diagnose issues
-        console.log('Constructed document path:', documentPath);
-    }
-    
-    // Check file extension
-    const fileExt = documentPath.split('.').pop().toLowerCase();
-    
-    if(fileExt === 'pdf') {
-        // PDF file
-        documentContainer.innerHTML = `<iframe src="${documentPath}" width="100%" height="600px" style="border:none;"></iframe>`;
-    } else if(fileExt === 'docx' || fileExt === 'doc') {
-        // Word document - offer download link
-        documentContainer.innerHTML = `
-            <div style="text-align:center; padding: 30px;">
-                <p>Word documents cannot be previewed directly. You can download the file using the link below.</p>
-                <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
-                    <i>📥</i> Download Document
-                </a>
-            </div>
-        `;
-    } else if(fileExt === 'jpg' || fileExt === 'jpeg' || fileExt === 'png' || fileExt === 'gif') {
-        // Image file
-        documentContainer.innerHTML = `<img src="${documentPath}" style="max-width:100%; max-height:600px; display:block; margin:0 auto;" alt="Business Document">`;
-    } else {
-        // Other file types
-        documentContainer.innerHTML = `
-            <div style="text-align:center; padding: 30px;">
-                <p>This file type cannot be previewed. You can download the file using the link below.</p>
-                <a href="${documentPath}" download class="btn btn-document" style="margin-top:20px;">
-                    <i>📥</i> Download Document
-                </a>
-            </div>
-        `;
-    }
-    
-    // Add check for file existence with error handling
-    fetch(documentPath, { method: 'HEAD' })
-        .then(response => {
-            if (!response.ok) {
-                documentContainer.innerHTML += `
-                    <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-                        <strong>Error:</strong> The file could not be found. Status code: ${response.status}. 
-                        Path tried: ${documentPath}
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            // Show fetch errors (except CORS which are expected in some cases)
-            if (!error.message.includes('CORS')) {
-                documentContainer.innerHTML += `
-                    <div style="margin-top: 15px; padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-                        <strong>Error:</strong> ${error.message}
-                    </div>
-                `;
-            }
-        });
-}
-        
-        // Close modal when clicking X
-        closeBtn.onclick = function() {
-            closeModal();
-        }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-        
-        // Function to close modal
-        function closeModal() {
-            modal.style.display = "none";
-            documentContainer.innerHTML = '';
-        }
-        
-        // Automatically expand the card if it's the current view (when loaded)
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-expand current employer if viewing individual
             const currentId = <?php echo $current_employer_id ?: 0; ?>;
             if (currentId > 0) {
                 const card = document.querySelector(`.employer-card[data-employer-id="${currentId}"]`);
@@ -1224,7 +1559,7 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                 }
             }
             
-            // Confirm logout
+            // Add logout confirmation
             const logoutLink = document.querySelector('a[href*="logout.php"]');
             if (logoutLink) {
                 logoutLink.addEventListener('click', function(e) {
@@ -1232,6 +1567,15 @@ $pending_count = $stmt_pending->fetch(PDO::FETCH_ASSOC)['count'];
                         e.preventDefault();
                     }
                 });
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+F to focus search
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('search').focus();
             }
         });
     </script>
