@@ -861,6 +861,17 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
             box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
         }
         
+        .btn-zip {
+            background: linear-gradient(135deg, #fd7e14 0%, #e8630c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+        }
+        
+        .btn-zip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
+        }
+        
         .btn-navigate {
             background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
             color: white;
@@ -969,6 +980,111 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
             transform: rotate(180deg);
         }
         
+        /* Enhanced Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 0;
+            border: none;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1000px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #1a3b5d 0%, #1557b0 100%);
+            color: white;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            opacity: 0.7;
+        }
+        
+        .modal-body {
+            padding: 25px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            background: #f8f9fa;
+        }
+        
+        /* Document Viewer Styles */
+        .document-viewer {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .document-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .document-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .document-image {
+            max-width: 100%;
+            max-height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .download-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
         /* Responsive Design */
         @media (max-width: 1024px) {
             .filter-row {
@@ -1014,21 +1130,31 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
                 width: 100%;
             }
             
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+            }
+            
             .quick-actions {
                 flex-direction: column;
                 gap: 5px;
             }
         }
         
-        /* File debug info */
-        .file-debug {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 4px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 0.85rem;
-            color: #0066cc;
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1557b0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -1301,7 +1427,7 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
                             $has_business_file = !empty($employer['business_file']);
                             $business_file_path = $has_business_file ? $employer['business_file'] : '';
                             
-                            // Debug file path
+                            // Check file existence
                             $full_file_path = '';
                             $file_exists = false;
                             if($has_business_file) {
@@ -1324,18 +1450,11 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
                                     </div>
                                 </div>
                                 <div class="quick-actions">
-                                    <?php if($has_business_file): ?>
-                                        <?php if($file_exists): ?>
-                                            <button type="button" class="quick-action-btn quick-action-view" title="View Document" 
-                                                    onclick="alert('File exists: <?php echo htmlspecialchars($full_file_path); ?>'); event.stopPropagation();">
-                                                📄
-                                            </button>
-                                        <?php else: ?>
-                                            <button type="button" class="quick-action-btn" title="File Missing: <?php echo htmlspecialchars($business_file_path); ?>" 
-                                                    onclick="alert('File missing: <?php echo htmlspecialchars($full_file_path); ?>'); event.stopPropagation();">
-                                                ⚠️
-                                            </button>
-                                        <?php endif; ?>
+                                    <?php if($has_business_file && $file_exists): ?>
+                                        <button type="button" class="quick-action-btn quick-action-view" title="View Document" 
+                                                onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>', <?php echo $employer_id; ?>); event.stopPropagation();">
+                                            📄
+                                        </button>
                                     <?php else: ?>
                                         <button type="button" class="quick-action-btn" title="No Document Available" disabled>
                                             ❌
@@ -1419,23 +1538,14 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
                                                 <?php if($has_business_file): ?>
                                                     📄 <?php echo htmlspecialchars(basename($business_file_path)); ?>
                                                     <br><small>Status: <?php echo $file_exists ? '✅ File exists' : '❌ File missing'; ?></small>
+                                                    <?php if($file_exists): ?>
+                                                        <br><small>Size: <?php echo number_format(filesize($full_file_path)); ?> bytes</small>
+                                                    <?php endif; ?>
                                                 <?php else: ?>
                                                     ❌ Not provided
                                                 <?php endif; ?>
                                             </span>
                                         </div>
-                                        
-                                        <?php if($has_business_file): ?>
-                                            <div class="file-debug">
-                                                <strong>File Debug Info:</strong><br>
-                                                DB Path: <?php echo htmlspecialchars($business_file_path); ?><br>
-                                                Full Path: <?php echo htmlspecialchars($full_file_path); ?><br>
-                                                Exists: <?php echo $file_exists ? 'YES' : 'NO'; ?><br>
-                                                <?php if($file_exists): ?>
-                                                    Size: <?php echo filesize($full_file_path); ?> bytes
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endif; ?>
                                         
                                         <div class="detail-group">
                                             <label>Company Description</label>
@@ -1457,6 +1567,18 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
                                 </div>
                                 
                                 <div class="employer-actions">
+                                    <?php if($has_business_file && $file_exists): ?>
+                                        <button type="button" class="btn btn-document" onclick="viewDocument('<?php echo htmlspecialchars($business_file_path); ?>', '<?php echo htmlspecialchars($employer['company_name']); ?>', <?php echo $employer_id; ?>)">
+                                            👁️ View Document
+                                        </button>
+                                        <a href="<?php echo SITE_URL; ?>/views/admin/serve-document.php?file=<?php echo urlencode($business_file_path); ?>&action=download&employer_id=<?php echo $employer_id; ?>" class="btn btn-document">
+                                            💾 Download
+                                        </a>
+                                        <a href="<?php echo SITE_URL; ?>/views/admin/serve-document.php?file=<?php echo urlencode($business_file_path); ?>&action=zip&employer_id=<?php echo $employer_id; ?>" class="btn btn-zip">
+                                            📦 Download ZIP
+                                        </a>
+                                    <?php endif; ?>
+                                    
                                     <?php if($employer['status'] == 'pending'): ?>
                                         <form id="reject-form-<?php echo $employer_id; ?>" method="post" style="display:inline;">
                                             <input type="hidden" name="employer_id" value="<?php echo $employer_id; ?>">
@@ -1525,6 +1647,35 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
         </div>
     </div>
     
+    <!-- Enhanced Document Viewer Modal -->
+    <div id="documentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Business Document</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="documentContainer">
+                <div class="document-viewer">
+                    <div class="loading"></div>
+                    <p>Loading document...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div>
+                    <button class="btn btn-navigate" onclick="closeModal()">Close</button>
+                </div>
+                <div>
+                    <a id="downloadLink" href="#" class="btn btn-document" style="display:none;">
+                        💾 Download
+                    </a>
+                    <a id="zipLink" href="#" class="btn btn-zip" style="display:none;">
+                        📦 Download ZIP
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Toggle filter visibility
         function toggleFilters() {
@@ -1540,6 +1691,129 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
             
             content.classList.toggle('open');
             toggleIcon.classList.toggle('rotated');
+        }
+        
+        // Modal functionality
+        const modal = document.getElementById("documentModal");
+        const documentContainer = document.getElementById("documentContainer");
+        const closeBtn = document.getElementsByClassName("close")[0];
+        const downloadLink = document.getElementById("downloadLink");
+        const zipLink = document.getElementById("zipLink");
+        
+        // Show document in modal with proper file serving
+        function viewDocument(documentPath, companyName, employerId) {
+            modal.style.display = "block";
+            document.querySelector('.modal-title').innerText = companyName + ' - Business Document';
+            
+            // Show loading state
+            documentContainer.innerHTML = '<div class="document-viewer"><div class="loading"></div><p>Loading document...</p></div>';
+            
+            // Use the secure file serving script
+            const baseUrl = '<?php echo rtrim(SITE_URL, '/'); ?>';
+            const viewUrl = baseUrl + '/views/admin/serve-document.php?file=' + encodeURIComponent(documentPath) + '&action=view&employer_id=' + employerId;
+            const downloadUrl = baseUrl + '/views/admin/serve-document.php?file=' + encodeURIComponent(documentPath) + '&action=download&employer_id=' + employerId;
+            const zipUrl = baseUrl + '/views/admin/serve-document.php?file=' + encodeURIComponent(documentPath) + '&action=zip&employer_id=' + employerId;
+            
+            console.log('Document path:', documentPath);
+            console.log('View URL:', viewUrl);
+            console.log('Download URL:', downloadUrl);
+            console.log('ZIP URL:', zipUrl);
+            
+            // Set download links
+            downloadLink.href = downloadUrl;
+            downloadLink.style.display = 'inline-flex';
+            zipLink.href = zipUrl;
+            zipLink.style.display = 'inline-flex';
+            
+            // Check file extension
+            const fileExt = documentPath.split('.').pop().toLowerCase();
+            
+            // Test if file exists first
+            fetch(viewUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`File not found (${response.status}): ${response.statusText}`);
+                    }
+                    
+                    // File exists, now display based on type
+                    if(fileExt === 'pdf') {
+                        documentContainer.innerHTML = `
+                            <iframe src="${viewUrl}" class="document-iframe"></iframe>
+                        `;
+                    } else if(['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExt)) {
+                        documentContainer.innerHTML = `
+                            <img src="${viewUrl}" class="document-image" alt="Business Document">
+                        `;
+                    } else if(['doc', 'docx'].includes(fileExt)) {
+                        documentContainer.innerHTML = `
+                            <div class="download-section">
+                                <h4>📄 Microsoft Word Document</h4>
+                                <p>Word documents cannot be previewed directly in the browser.</p>
+                                <p><strong>File:</strong> ${documentPath.split('/').pop()}</p>
+                                <p><strong>Company:</strong> ${companyName}</p>
+                                <div style="margin-top: 20px;">
+                                    <a href="${downloadUrl}" class="btn btn-document">
+                                        💾 Download Document
+                                    </a>
+                                    <a href="${zipUrl}" class="btn btn-zip" style="margin-left: 10px;">
+                                        📦 Download as ZIP
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        documentContainer.innerHTML = `
+                            <div class="download-section">
+                                <h4>📎 Document File</h4>
+                                <p>This file type cannot be previewed directly in the browser.</p>
+                                <p><strong>File:</strong> ${documentPath.split('/').pop()}</p>
+                                <p><strong>Company:</strong> ${companyName}</p>
+                                <div style="margin-top: 20px;">
+                                    <a href="${downloadUrl}" class="btn btn-document">
+                                        💾 Download Document
+                                    </a>
+                                    <a href="${zipUrl}" class="btn btn-zip" style="margin-left: 10px;">
+                                        📦 Download as ZIP
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading document:', error);
+                    documentContainer.innerHTML = `
+                        <div class="document-error">
+                            <h4>❌ Error Loading Document</h4>
+                            <p><strong>Error:</strong> ${error.message}</p>
+                            <p><strong>Original Path:</strong> ${documentPath}</p>
+                            <p><strong>Attempted URL:</strong> ${viewUrl}</p>
+                            <p>The document file may have been moved or deleted. Please contact the system administrator.</p>
+                        </div>
+                    `;
+                    downloadLink.style.display = 'none';
+                    zipLink.style.display = 'none';
+                });
+        }
+        
+        // Close modal when clicking X
+        closeBtn.onclick = function() {
+            closeModal();
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Function to close modal
+        function closeModal() {
+            modal.style.display = "none";
+            documentContainer.innerHTML = '';
+            downloadLink.style.display = 'none';
+            zipLink.style.display = 'none';
         }
         
         // Initialize page
@@ -1572,6 +1846,11 @@ $active_count = $stmt_active->fetch(PDO::FETCH_ASSOC)['count'];
         
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
+            // Escape key to close modal
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                closeModal();
+            }
+            
             // Ctrl+F to focus search
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
